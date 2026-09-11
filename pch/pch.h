@@ -11,9 +11,15 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
+// std
 #include <iostream>
 #include <string>
 #include <vector>
 #include <cstdint>
-#include <string>
 #include <string_view>
+#include <iostream>
+#include <format>
+#include <source_location>
+
+// SDL3
+#include <SDL3/SDL.h>
