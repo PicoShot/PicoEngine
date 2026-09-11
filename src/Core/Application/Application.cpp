@@ -1,7 +1,7 @@
 #include "Application.hpp"
+#include "Core/Debug/Debug.hpp"
+#include "Core/Engine/Engine.hpp"
 #include "Core/Window/Window.hpp"
-
-#include <iostream>
 
 namespace PicoEngine
 {
@@ -10,16 +10,18 @@ int Application::Run()
 {
     try
     {
-        Window window(WindowDesc{});
+        Engine engine;
+        engine.Initialize();
 
+        Window& window = engine.GetWindow();
         while (!window.ShouldClose())
-        {
             window.PollEvents();
-        }
+
+        engine.Shutdown();
     }
     catch (const std::exception& ex)
     {
-        std::cerr << "[PicoEngine] Fatal: " << ex.what() << '\n';
+        LOG_ERROR("Fatal: {}", ex.what());
         return 1;
     }
     return 0;

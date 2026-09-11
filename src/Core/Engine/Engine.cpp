@@ -40,7 +40,7 @@ void Engine::Shutdown()
 
 Window& Engine::GetWindow()
 {
-    PICO_ASSERT(m_window == nullptr, "Engine::GetWindow called before Initialize()");
+    PICO_ASSERT(m_window != nullptr, "Engine::GetWindow called before Initialize()");
     return *m_window;
 }
 

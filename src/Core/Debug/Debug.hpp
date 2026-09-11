@@ -53,12 +53,8 @@ class Debug
 
 } // namespace PicoEngine
 
-#if defined(NDEBUG)
-#define PICO_ASSERT(condition, ...) ((void)0)
-#else
 #define PICO_ASSERT(condition, ...) \
     ::PicoEngine::Debug::Assert((condition), std::source_location::current() __VA_OPT__(, ) __VA_ARGS__)
-#endif
 
 #define LOG_DEBUG(...) ::PicoEngine::Debug::LogDebug(__VA_ARGS__)
 #define LOG_WARNING(...) ::PicoEngine::Debug::LogWarning(__VA_ARGS__)

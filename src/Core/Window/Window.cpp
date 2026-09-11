@@ -1,6 +1,6 @@
 #include "Window.hpp"
 
-#include <SDL3/SDL.h>
+#include "Core/Debug/Debug.hpp"
 
 namespace PicoEngine
 {
@@ -15,27 +15,21 @@ Window::Window(const WindowDesc& desc) : m_width(desc.width), m_height(desc.heig
     const bool wasFirst = (s_videoInitCount == 0);
     if (wasFirst)
     {
-        if (!SDL_Init(SDL_INIT_VIDEO))
-            throw std::runtime_error(std::string("SDL_Init failed: ") + SDL_GetError());
+        PICO_ASSERT(SDL_Init(SDL_INIT_VIDEO), "SDL_Init failed: {}", SDL_GetError());
     }
 
     SDL_WindowFlags flags = 0;
 
     flags |= SDL_WINDOW_VULKAN;
-
+    
     if (desc.resizable)
         flags |= SDL_WINDOW_RESIZABLE;
 
-    m_handle = SDL_CreateWindow(desc.title.data(), desc.width, desc.height, flags);
-    if (m_handle == nullptr)
-    {
-        const std::string error = SDL_GetError();
-        if (wasFirst)
-            SDL_Quit();
-        throw std::runtime_error("SDL_CreateWindow failed: " + error);
-    }
+    m_handle = SDL_CreateWindow(std::string(desc.title).c_str(), desc.width, desc.height, flags);
+    PICO_ASSERT(m_handle != nullptr, "SDL_CreateWindow failed: {}", SDL_GetError());
 
     ++s_videoInitCount;
+    LOG_DEBUG("Window created: '{}' {}x{}", desc.title, m_width, m_height);
 }
 
 Window::~Window()
@@ -47,6 +41,7 @@ Window::~Window()
     --s_videoInitCount;
     if (s_videoInitCount == 0)
         SDL_Quit();
+    LOG_DEBUG("Window destroyed");
 }
 
 Window::Window(Window&& other) noexcept
@@ -105,11 +100,15 @@ void Window::PollEvents()
         {
         case SDL_EVENT_QUIT:
             m_shouldClose = true;
+            LOG_DEBUG("Quit requested");
             break;
 
         case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
             if (event.window.windowID == SDL_GetWindowID(m_handle))
+            {
                 m_shouldClose = true;
+                LOG_DEBUG("Window close requested");
+            }
             break;
 
         case SDL_EVENT_WINDOW_RESIZED:

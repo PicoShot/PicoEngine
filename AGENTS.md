@@ -38,8 +38,19 @@ if possible external libraries must staticly linked to executable, no dynamic li
   interface, guard with `PICO_PLATFORM_WINDOWS` / `PICO_PLATFORM_LINUX`
   (see `pch/pch.h`), and keep the `#ifdef` surface as small as possible.
 
-## Logging and assertions
+## Precompiled header convention
 
+- **Never `#include` C++ standard headers or external library headers
+  (SDL3, Vulkan, ...) in engine source files.** Not in `.cpp`, not in `.hpp`.
+- Add them to `pch/pch.h` instead. CMake force-includes the PCH into every
+  translation unit, so engine files see `std::`, `SDL_`, etc. without ever
+  including `pch.h` themselves (this is how the current Clang/Ninja build
+  works — do not "fix" the missing includes).
+- Only `#include` project headers (`Core/...`) directly in files.
+- Consequence: engine headers are not self-contained and must stay inside
+  PCH-enabled targets.
+
+## Logging and assertions
 - All logging goes through `Core/Debug/Debug.hpp`. Never use `std::cout`,
   `std::cerr`, or `printf` directly in engine code.
 - Macros (global, no namespace qualification needed):
@@ -47,8 +58,8 @@ if possible external libraries must staticly linked to executable, no dynamic li
   - `LOG_WARNING(...)` — recoverable problems.
   - `LOG_ERROR(...)` — failures; use at `catch` sites with the exception text.
   - `PICO_ASSERT(cond)` / `PICO_ASSERT(cond, "msg {}", args...)` — invariants
-    only (never for validation of external input). Aborts with file/line in
-    Debug builds, compiles to nothing in Release (`NDEBUG`).
+    and fatal startup checks. Active in ALL builds (never stripped): logs with
+    file/line and aborts. Prefer it over manual `if (...) throw` blocks.
 - The debug-level method is `Debug::LogDebug` (a member literally named
   `Debug` would collide with the class constructors).
 - Rules of thumb: log lifecycle transitions (init/shutdown/create/destroy),
