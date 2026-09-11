@@ -27,6 +27,34 @@ about a system's capabilities or limitations.
 - **All engine libraries must be statically linked. No DLLs.**
 if possible external libraries must staticly linked to executable, no dynamic libraries as much as posible
 
+## Cross-platform policy
+
+- **The engine targets Windows and Linux.** Every change must work on both.
+- **Always choose cross-platform solutions first:** SDL3 and the C++ standard
+  library (`std::filesystem`, `std::thread`, `<format>`, ...) cover most needs.
+- **No platform-only APIs in shared code.** No Win32 calls, no POSIX-only
+  headers, no `OutputDebugString`, no backslash path assumptions.
+- When platform code is unavoidable, isolate it behind a platform-neutral
+  interface, guard with `PICO_PLATFORM_WINDOWS` / `PICO_PLATFORM_LINUX`
+  (see `pch/pch.h`), and keep the `#ifdef` surface as small as possible.
+
+## Logging and assertions
+
+- All logging goes through `Core/Debug/Debug.hpp`. Never use `std::cout`,
+  `std::cerr`, or `printf` directly in engine code.
+- Macros (global, no namespace qualification needed):
+  - `LOG_DEBUG(...)` — diagnostics, lifecycle events (`std::format` syntax).
+  - `LOG_WARNING(...)` — recoverable problems.
+  - `LOG_ERROR(...)` — failures; use at `catch` sites with the exception text.
+  - `PICO_ASSERT(cond)` / `PICO_ASSERT(cond, "msg {}", args...)` — invariants
+    only (never for validation of external input). Aborts with file/line in
+    Debug builds, compiles to nothing in Release (`NDEBUG`).
+- The debug-level method is `Debug::LogDebug` (a member literally named
+  `Debug` would collide with the class constructors).
+- Rules of thumb: log lifecycle transitions (init/shutdown/create/destroy),
+  never log per-frame hot paths, and throw exceptions for fatal startup
+  failures so `Application::Run` can report them once via `LOG_ERROR`.
+
 ## Design guidance
 
 - **Design from gameplay usage.** For new APIs, consider the code a game developer
