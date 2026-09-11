@@ -1,7 +1,7 @@
-import Application;
+#include "Core/Application/Application.hpp"
 
 int main()
 {
-    Application app;
-    return app.run();
+    PicoEngine::Application app;
+    return app.Run();
 }
