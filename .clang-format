@@ -1,0 +1,121 @@
+---
+# C++ formatting rules used throughout this project.
+Language: Cpp
+BasedOnStyle: Microsoft
+
+# Indentation and line length.
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ContinuationIndentWidth: 4
+ConstructorInitializerIndentWidth: 4
+ColumnLimit: 0
+MaxEmptyLinesToKeep: 1
+KeepEmptyLines:
+  AtStartOfFile: true
+  AtStartOfBlock: true
+  AtEndOfFile: false
+InsertNewlineAtEOF: true
+
+# Allman braces: put every block-opening brace on its own line.
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel: false
+  AfterClass: true
+  AfterControlStatement: Always
+  AfterEnum: true
+  AfterExternBlock: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterStruct: true
+  AfterUnion: true
+  BeforeCatch: true
+  BeforeElse: true
+  BeforeWhile: false
+  IndentBraces: false
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+  SplitEmptyNamespace: true
+
+# Keep short constructs expanded into the normal multi-line block form.
+AllowShortBlocksOnASingleLine: Never
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLoopsOnASingleLine: false
+AllowShortNamespacesOnASingleLine: false
+# Remove optional braces when a control-flow branch has only one statement.
+RemoveBracesLLVM: true
+
+# Horizontally align consecutive declarations and assignments.
+AlignConsecutiveDeclarations:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: false
+  AlignFunctionDeclarations: true
+  AlignFunctionPointers: false
+  PadOperators: false
+AlignConsecutiveAssignments:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: false
+  AlignCompound: false
+  AlignFunctionDeclarations: false
+  AlignFunctionPointers: false
+  PadOperators: true
+AlignConsecutiveBitFields:
+  Enabled: false
+AlignConsecutiveMacros:
+  Enabled: false
+AlignTrailingComments:
+  Kind: Always
+  OverEmptyLines: 0
+SpacesBeforeTrailingComments: 1
+
+# Pointer, reference, and token spacing.
+DerivePointerAlignment: false
+PointerAlignment: Left
+ReferenceAlignment: Pointer
+SpaceAroundPointerQualifiers: Default
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeParens: ControlStatements
+SpaceBeforeParensOptions:
+  AfterControlStatements: true
+  AfterFunctionDefinitionName: false
+  AfterFunctionDeclarationName: false
+  AfterNot: false
+  AfterOverloadedOperator: false
+  BeforeNonEmptyParentheses: false
+SpacesInParens: Never
+SpacesInSquareBrackets: false
+SpacesInAngles: Never
+SpaceBeforeSquareBrackets: false
+SpaceBeforeCpp11BracedList: false
+SpacesInContainerLiterals: true
+SpaceAfterCStyleCast: false
+SpaceAfterLogicalNot: false
+
+# Wrapping and expression layout.
+BreakAfterReturnType: None
+BreakBeforeBinaryOperators: None
+BreakBeforeTernaryOperators: true
+BreakConstructorInitializers: BeforeColon
+BreakInheritanceList: BeforeColon
+BinPackArguments: true
+BinPackParameters: true
+AlignAfterOpenBracket: true
+AlignOperands: Align
+Cpp11BracedListStyle: AlignFirstComment
+
+# Keep the manually grouped include blocks and their existing order.
+IncludeBlocks: Preserve
+SortIncludes: false
+SortUsingDeclarations: LexicographicNumeric
+
+# Preprocessor and labels follow the Microsoft base style.
+IndentCaseLabels: false
+IndentCaseBlocks: false
+IndentPPDirectives: None
+IndentGotoLabels: true
+...
