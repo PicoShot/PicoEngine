@@ -29,7 +29,9 @@ about a system's capabilities or limitations.
 - Configure with `cmake -S . -B build -G Ninja -DCMAKE_C_COMPILER=clang
   -DCMAKE_CXX_COMPILER=clang++`. Release and RelWithDebInfo use `-O3` and ThinLTO.
 - Windows still requires SDK/CRT development files from Visual Studio C++ tools.
-  LuaJIT's Windows script uses Clang's `clang-cl` driver with LLVM link/archive tools.
+  LuaJIT uses bundled x64 static archives in `external/luajit` with shared headers.
+  Windows Debug selects the `/MTd` archive; other profiles select `/MT`. Linux
+  uses the same archive in all profiles. LuaJIT is not compiled during engine builds.
 
 - **All engine libraries must be statically linked. No DLLs.**
 if possible external libraries must staticly linked to executable, no dynamic libraries as much as posible
