@@ -1,4 +1,5 @@
 #include "RotatingCube.hpp"
+#include "Rendering/ShaderCompiler.hpp"
 
 namespace PicoEngine
 {
@@ -13,13 +14,17 @@ std::filesystem::path ShaderPath(const char* name)
 {
     const char* base = SDL_GetBasePath();
     PICO_ASSERT(base != nullptr, "{}", SDL_GetError());
-    return std::filesystem::path(base) / "shaders" / name;
+    return std::filesystem::path(base) / "assets" / "shaders" / name;
 }
 } // namespace
-RotatingCube::RotatingCube(Rendering::Renderer& renderer)
-    : m_renderer(renderer), m_vertexShader(renderer.GetDevice(), ShaderPath("cube.vert.spv")),
-      m_fragmentShader(renderer.GetDevice(), ShaderPath("cube.frag.spv"))
+RotatingCube::RotatingCube(Rendering::Renderer& renderer) : m_renderer(renderer)
 {
+    Rendering::ShaderCompiler compiler;
+    auto                      vertexSpv   = compiler.CompileFile(ShaderPath("cube.vert"));
+    auto                      fragmentSpv = compiler.CompileFile(ShaderPath("cube.frag"));
+
+    m_vertexShader   = std::make_unique<Rendering::Shader>(renderer.GetDevice(), vertexSpv.spirv, "cube.vert");
+    m_fragmentShader = std::make_unique<Rendering::Shader>(renderer.GetDevice(), fragmentSpv.spirv, "cube.frag");
     const std::array<Vertex, 8>    vertices{{{{-1, -1, -1}, {0.2f, 0.4f, 1}}, {{1, -1, -1}, {1, 0.3f, 0.2f}}, {{1, 1, -1}, {1, 0.8f, 0.2f}}, {{-1, 1, -1}, {0.2f, 1, 0.5f}}, {{-1, -1, 1}, {0.6f, 0.2f, 1}}, {{1, -1, 1}, {1, 0.3f, 0.6f}}, {{1, 1, 1}, {0.3f, 0.8f, 1}}, {{-1, 1, 1}, {0.3f, 1, 0.7f}}}};
     const std::array<uint16_t, 36> indices{{0, 2, 1, 0, 3, 2, 4, 5, 6, 4, 6, 7,
                                             0, 4, 7, 0, 7, 3, 1, 2, 6, 1, 6, 5,
@@ -39,7 +44,7 @@ void RotatingCube::Draw(VkCommandBuffer command, float seconds)
         VkVertexInputBindingDescription                  binding{0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX};
         std::array<VkVertexInputAttributeDescription, 2> attributes{{{0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, position)},
                                                                      {1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color)}}};
-        Rendering::GraphicsPipelineDesc                  desc{m_renderer.RenderPass(), m_vertexShader, m_fragmentShader,
+        Rendering::GraphicsPipelineDesc                  desc{m_renderer.RenderPass(), *m_vertexShader, *m_fragmentShader,
                                                               std::span(&binding, 1), attributes, sizeof(glm::mat4)};
         m_pipeline   = std::make_unique<Rendering::GraphicsPipeline>(m_renderer.GetDevice(), desc);
         m_generation = m_renderer.Generation();

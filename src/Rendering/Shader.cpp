@@ -2,20 +2,16 @@
 
 namespace PicoEngine::Rendering
 {
-Shader::Shader(Device& device, const std::filesystem::path& path) : m_device(device)
+Shader::Shader(Device& device, std::span<const uint32_t> spirv, std::string_view debugName) : m_device(device)
 {
-    std::ifstream file(path, std::ios::binary | std::ios::ate);
-    PICO_ASSERT(file, "Cannot open shader: {}", path.string());
-    const auto size = file.tellg();
-    PICO_ASSERT(size >= 20 && size % 4 == 0, "Invalid SPIR-V size: {}", path.string());
-    std::vector<uint32_t> code(static_cast<size_t>(size) / 4);
-    file.seekg(0);
-    PICO_ASSERT(file.read(reinterpret_cast<char*>(code.data()), size) && code.front() == 0x07230203,
-                "Invalid SPIR-V shader: {}", path.string());
+    const std::string name(debugName);
+    PICO_ASSERT(!spirv.empty() && spirv.size() * sizeof(uint32_t) >= 20, "Invalid SPIR-V size: {}", name);
+    PICO_ASSERT(spirv.front() == 0x07230203, "Invalid SPIR-V shader: {}", name);
     VkShaderModuleCreateInfo info{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
-    info.codeSize = static_cast<size_t>(size);
-    info.pCode    = code.data();
+    info.codeSize = spirv.size_bytes();
+    info.pCode    = spirv.data();
     Check(vkCreateShaderModule(device.Handle(), &info, nullptr, &m_module), "Create shader module");
+    LOG_DEBUG("Created shader module '{}' ({} words)", name, spirv.size());
 }
 Shader::~Shader()
 {

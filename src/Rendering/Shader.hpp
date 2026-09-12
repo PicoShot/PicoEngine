@@ -6,7 +6,7 @@ namespace PicoEngine::Rendering
 class Shader
 {
   public:
-    Shader(Device& device, const std::filesystem::path& path);
+    Shader(Device& device, std::span<const uint32_t> spirv, std::string_view debugName = "shader");
     ~Shader();
     Shader(const Shader&)                   = delete;
     Shader&        operator=(const Shader&) = delete;

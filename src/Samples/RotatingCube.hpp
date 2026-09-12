@@ -14,8 +14,8 @@ class RotatingCube
 
   private:
     Rendering::Renderer&                         m_renderer;
-    Rendering::Shader                            m_vertexShader;
-    Rendering::Shader                            m_fragmentShader;
+    std::unique_ptr<Rendering::Shader>           m_vertexShader;
+    std::unique_ptr<Rendering::Shader>           m_fragmentShader;
     std::unique_ptr<Rendering::Buffer>           m_vertices;
     std::unique_ptr<Rendering::Buffer>           m_indices;
     std::unique_ptr<Rendering::GraphicsPipeline> m_pipeline;
