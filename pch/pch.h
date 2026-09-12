@@ -41,6 +41,9 @@
 // Vulkan
 #include <vulkan/vulkan.h>
 
+// Lua
+#include <sol/sol.hpp>
+
 // GLM
 #include <glm/glm.hpp>
 #include <glm/simd/common.h>
