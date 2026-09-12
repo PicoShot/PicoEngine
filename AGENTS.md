@@ -24,6 +24,13 @@ about a system's capabilities or limitations.
 
 ## Build and dependencies
 
+- Use LLVM Clang on Windows and Linux: `clang` for C, `clang++` for C++ and LLD
+  for engine linking. GCC/MSVC compiler support is intentionally excluded.
+- Configure with `cmake -S . -B build -G Ninja -DCMAKE_C_COMPILER=clang
+  -DCMAKE_CXX_COMPILER=clang++`. Release and RelWithDebInfo use `-O3` and ThinLTO.
+- Windows still requires SDK/CRT development files from Visual Studio C++ tools.
+  LuaJIT's Windows script uses Clang's `clang-cl` driver with LLVM link/archive tools.
+
 - **All engine libraries must be statically linked. No DLLs.**
 if possible external libraries must staticly linked to executable, no dynamic libraries as much as posible
 
