@@ -22,7 +22,8 @@ target_link_libraries(PicoEngine PRIVATE
                       Vulkan::Vulkan
                       sol2::sol2
                       imgui::imgui
-                      shaderc::shaderc)
+                      shaderc::shaderc
+                      stb::stb)
 
 
 # Optimizations

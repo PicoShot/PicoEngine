@@ -52,6 +52,9 @@
 // Shaderc
 #include <shaderc/shaderc.hpp>
 
+// Stb
+#include <stb_image.h>
+
 // GLM
 #include <glm/glm.hpp>
 #include <glm/simd/common.h>
