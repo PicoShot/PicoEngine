@@ -12,14 +12,12 @@ int Application::Run()
 
     try
     {
-        PICO_ASSERT_FAIL("testing failed: {}", "test");
         Engine engine;
         engine.Initialize();
         Window&      window   = engine.GetWindow();
         auto&        renderer = engine.GetRenderer();
         RotatingCube cube(renderer);
-        const auto   start  = std::chrono::steady_clock::now();
-        uint64_t     frames = 0;
+        const auto   start = std::chrono::steady_clock::now();
         while (!window.ShouldClose())
         {
             window.PollEvents();

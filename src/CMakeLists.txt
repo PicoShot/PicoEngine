@@ -37,8 +37,43 @@ target_link_libraries(PicoEngine PRIVATE
                       glm::glm
                       Vulkan::Vulkan)
 
+
+
+# Optimizations
+
 if (MSVC)
     target_compile_options(PicoEngine PRIVATE /arch:AVX2)
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     target_compile_options(PicoEngine PRIVATE -mavx2 -mfma)
+endif()
+
+set(PICO_OPTIMIZED_CONFIG "$<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>>")
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    if (CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+        target_compile_options(PicoEngine PRIVATE
+            "$<${PICO_OPTIMIZED_CONFIG}:/clang:-O3>"
+            "$<${PICO_OPTIMIZED_CONFIG}:/clang:-flto=thin>")
+        target_link_options(PicoEngine PRIVATE "$<${PICO_OPTIMIZED_CONFIG}:-fuse-ld=lld>")
+    else()
+        target_compile_options(PicoEngine PRIVATE
+            "$<${PICO_OPTIMIZED_CONFIG}:-O3>"
+            "$<${PICO_OPTIMIZED_CONFIG}:-flto=thin>")
+        target_link_options(PicoEngine PRIVATE
+            "$<${PICO_OPTIMIZED_CONFIG}:-flto=thin>"
+            "$<${PICO_OPTIMIZED_CONFIG}:-fuse-ld=lld>")
+    endif()
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR MSVC)
+    include(CheckIPOSupported)
+    check_ipo_supported(RESULT PICO_IPO_SUPPORTED OUTPUT PICO_IPO_ERROR LANGUAGES CXX)
+    if (NOT PICO_IPO_SUPPORTED)
+        message(FATAL_ERROR "Release LTO is unavailable: ${PICO_IPO_ERROR}")
+    endif()
+    set_target_properties(PicoEngine PROPERTIES
+        INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE
+        INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO TRUE)
+    if (MSVC)
+        target_compile_options(PicoEngine PRIVATE "$<${PICO_OPTIMIZED_CONFIG}:/O2>")
+    else()
+        target_compile_options(PicoEngine PRIVATE "$<${PICO_OPTIMIZED_CONFIG}:-O3>")
+    endif()
 endif()
