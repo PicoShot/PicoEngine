@@ -33,11 +33,11 @@ Texture::Texture(Device& device, VkExtent3D extent, VkFormat format, VkImageUsag
         view.subresourceRange = {aspect, 0, 1, 0, 1};
         Check(vkCreateImageView(device.Handle(), &view, nullptr, &m_view), "Create texture view");
     }
-    catch (...)
+    catch (const std::exception& exception)
     {
         if (m_image) vkDestroyImage(device.Handle(), m_image, nullptr);
         if (m_memory) vkFreeMemory(device.Handle(), m_memory, nullptr);
-        throw;
+        PICO_ASSERT_FAIL("Texture creation failed: {}", exception.what());
     }
 }
 Texture::~Texture()

@@ -22,10 +22,10 @@ Renderer::Renderer(SDL_Window* window) : m_window(window), m_device(window)
         }
         LOG_DEBUG("Renderer initialized");
     }
-    catch (...)
+    catch (const std::exception& exception)
     {
         DestroyFrames();
-        throw;
+        PICO_ASSERT_FAIL("Renderer initialization failed: {}", exception.what());
     }
 }
 Renderer::~Renderer()

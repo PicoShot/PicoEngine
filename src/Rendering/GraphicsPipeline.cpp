@@ -66,11 +66,11 @@ GraphicsPipeline::GraphicsPipeline(Device& device, const GraphicsPipelineDesc& d
         info.renderPass          = desc.renderPass;
         Check(vkCreateGraphicsPipelines(device.Handle(), VK_NULL_HANDLE, 1, &info, nullptr, &m_pipeline), "Create graphics pipeline");
     }
-    catch (...)
+    catch (const std::exception& exception)
     {
         if (m_pipeline) vkDestroyPipeline(device.Handle(), m_pipeline, nullptr);
         vkDestroyPipelineLayout(device.Handle(), m_layout, nullptr);
-        throw;
+        PICO_ASSERT_FAIL("Pipeline creation failed: {}", exception.what());
     }
 }
 GraphicsPipeline::~GraphicsPipeline()

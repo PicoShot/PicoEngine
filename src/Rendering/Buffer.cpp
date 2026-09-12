@@ -25,11 +25,11 @@ Buffer::Buffer(Device& device, VkDeviceSize size, VkBufferUsageFlags usage, VkMe
         if (memory & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
             Check(vkMapMemory(device.Handle(), m_memory, 0, VK_WHOLE_SIZE, 0, &m_mapped), "Map buffer");
     }
-    catch (...)
+    catch (const std::exception& exception)
     {
         if (m_buffer) vkDestroyBuffer(device.Handle(), m_buffer, nullptr);
         if (m_memory) vkFreeMemory(device.Handle(), m_memory, nullptr);
-        throw;
+        PICO_ASSERT_FAIL("Buffer creation failed: {}", exception.what());
     }
 }
 Buffer::~Buffer()

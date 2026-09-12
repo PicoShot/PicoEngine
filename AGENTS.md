@@ -58,13 +58,19 @@ if possible external libraries must staticly linked to executable, no dynamic li
   - `LOG_WARNING(...)` — recoverable problems.
   - `LOG_ERROR(...)` — failures; use at `catch` sites with the exception text.
   - `PICO_ASSERT(cond)` / `PICO_ASSERT(cond, "msg {}", args...)` — invariants
-    and fatal startup checks. Active in ALL builds (never stripped): logs with
-    file/line and aborts. Prefer it over manual `if (...) throw` blocks.
+  and fatal startup checks. Active in ALL builds (never stripped): evaluates the
+  condition once, logs file/line and the expression, then triggers a breakpoint
+  and aborts directly at the macro call site. Message arguments are evaluated
+  only on failure. Prefer it over manual `if (...) throw` blocks.
+- `PICO_ASSERT_FAIL()` / `PICO_ASSERT_FAIL("msg {}", args...)` — unconditional
+  failure with the same always-on call-site breakpoint and abort behavior. Use
+  instead of `PICO_ASSERT(false, ...)`.
 - The debug-level method is `Debug::LogDebug` (a member literally named
   `Debug` would collide with the class constructors).
 - Rules of thumb: log lifecycle transitions (init/shutdown/create/destroy),
-  never log per-frame hot paths, and throw exceptions for fatal startup
-  failures so `Application::Run` can report them once via `LOG_ERROR`.
+  never log per-frame hot paths, and use `PICO_ASSERT` for fatal startup failures
+  rather than throwing exceptions. Assertions do not unwind the stack. Catch
+  unexpected standard-library/external exceptions at appropriate boundaries.
 
 ## Design guidance
 

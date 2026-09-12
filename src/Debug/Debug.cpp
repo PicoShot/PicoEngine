@@ -3,18 +3,17 @@
 namespace PicoEngine
 {
 
-void Debug::Assert(bool condition, std::string_view message, std::source_location location)
+void Debug::ReportAssertion(std::source_location location, std::string_view expression, std::string_view message) noexcept
 {
-    if (condition)
-        return;
-    Write(Level::Error, std::format("ASSERT FAILED [{}:{}] {}", location.file_name(),
-                                    location.line(), message));
-    std::abort();
-}
-
-void Debug::Assert(bool condition, std::source_location location, std::string_view message)
-{
-    Assert(condition, message, location);
+    try
+    {
+        Write(Level::Error, std::format("ASSERT FAILED [{}:{}] ({}) {}", location.file_name(),
+                                      location.line(), expression, message));
+    }
+    catch (...)
+    {
+        // Logging failure must not prevent the call-site breakpoint and abort.
+    }
 }
 
 void Debug::Write(Level level, const std::string& message)

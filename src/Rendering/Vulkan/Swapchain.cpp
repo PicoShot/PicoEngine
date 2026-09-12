@@ -13,7 +13,7 @@ Swapchain::Swapchain(Device& device, VkExtent2D requestedExtent) : m_device(devi
         Check(vkGetPhysicalDeviceSurfaceFormatsKHR(device.Physical(), device.Surface(), &count, nullptr), "Query surface formats");
         std::vector<VkSurfaceFormatKHR> formats(count);
         Check(vkGetPhysicalDeviceSurfaceFormatsKHR(device.Physical(), device.Surface(), &count, formats.data()), "Query surface formats");
-        if (formats.empty()) throw std::runtime_error("Surface has no formats");
+        PICO_ASSERT(!formats.empty(), "Surface has no formats");
         auto format = formats.front();
         if (format.format == VK_FORMAT_UNDEFINED) format = {VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
         for (auto candidate : formats)
@@ -22,8 +22,8 @@ Swapchain::Swapchain(Device& device, VkExtent2D requestedExtent) : m_device(devi
         if (m_extent.width == std::numeric_limits<uint32_t>::max())
             m_extent = {std::clamp(requestedExtent.width, caps.minImageExtent.width, caps.maxImageExtent.width),
                         std::clamp(requestedExtent.height, caps.minImageExtent.height, caps.maxImageExtent.height)};
-        if (!m_extent.width || !m_extent.height) throw std::runtime_error("Surface has zero extent");
-        if (!(caps.supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)) throw std::runtime_error("Surface cannot be a color attachment");
+        PICO_ASSERT(m_extent.width && m_extent.height, "Surface has zero extent");
+        PICO_ASSERT(caps.supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, "Surface cannot be a color attachment");
         uint32_t imageCount = caps.minImageCount + 1;
         if (caps.maxImageCount) imageCount = std::min(imageCount, caps.maxImageCount);
         VkSwapchainCreateInfoKHR info{VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
@@ -59,7 +59,7 @@ Swapchain::Swapchain(Device& device, VkExtent2D requestedExtent) : m_device(devi
                 break;
             }
         }
-        if (depthFormat == VK_FORMAT_UNDEFINED) throw std::runtime_error("No supported depth format");
+        PICO_ASSERT(depthFormat != VK_FORMAT_UNDEFINED, "No supported depth format");
         std::array<VkAttachmentDescription, 2> attachments{};
         attachments[0].format         = format.format;
         attachments[0].samples        = VK_SAMPLE_COUNT_1_BIT;
@@ -124,10 +124,10 @@ Swapchain::Swapchain(Device& device, VkExtent2D requestedExtent) : m_device(devi
         }
         LOG_DEBUG("Swapchain created: {}x{}, {} images", m_extent.width, m_extent.height, count);
     }
-    catch (...)
+    catch (const std::exception& exception)
     {
         Destroy();
-        throw;
+        PICO_ASSERT_FAIL("Swapchain creation failed: {}", exception.what());
     }
 }
 Swapchain::~Swapchain()

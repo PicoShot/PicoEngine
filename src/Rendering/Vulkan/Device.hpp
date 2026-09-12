@@ -1,8 +1,16 @@
 #pragma once
+#include "Debug/Debug.hpp"
+
+// Preserve the existing Check spelling, but expand at the Vulkan operation's call site.
+#define Check(result, operation) \
+    do \
+    { \
+        const VkResult picoVkResult = (result); \
+        PICO_ASSERT(picoVkResult == VK_SUCCESS, "{} failed (VkResult {})", operation, static_cast<int>(picoVkResult)); \
+    } while (false)
 
 namespace PicoEngine::Rendering
 {
-void Check(VkResult result, std::string_view operation);
 
 // Owns the Vulkan instance, presentation surface, device and upload command pool.
 // All GPU resources must be destroyed before the device, on the render thread.

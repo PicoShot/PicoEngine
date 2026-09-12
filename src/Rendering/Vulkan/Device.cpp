@@ -3,11 +3,6 @@
 
 namespace PicoEngine::Rendering
 {
-void Check(VkResult result, std::string_view operation)
-{
-    PICO_ASSERT(result == VK_SUCCESS, std::format("{} failed (VkResult {})", operation, static_cast<int>(result)));
-}
-
 namespace
 {
 VKAPI_ATTR VkBool32 VKAPI_CALL Validation(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
@@ -27,7 +22,7 @@ Device::Device(SDL_Window* window)
     {
         uint32_t           count    = 0;
         const char* const* required = SDL_Vulkan_GetInstanceExtensions(&count);
-        if (!required) throw std::runtime_error(SDL_GetError());
+        PICO_ASSERT(required != nullptr, "{}", SDL_GetError());
         std::vector<const char*> extensions(required, required + count);
         std::vector<const char*> layers;
         bool                     validation = SDL_getenv("PICO_VULKAN_VALIDATION") != nullptr;
@@ -72,8 +67,7 @@ Device::Device(SDL_Window* window)
             auto create = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(m_instance, "vkCreateDebugUtilsMessengerEXT"));
             Check(create(m_instance, &debug, nullptr, &m_debug), "Create debug messenger");
         }
-        if (!SDL_Vulkan_CreateSurface(window, m_instance, nullptr, &m_surface))
-            throw std::runtime_error(SDL_GetError());
+        PICO_ASSERT(SDL_Vulkan_CreateSurface(window, m_instance, nullptr, &m_surface), "{}", SDL_GetError());
         Check(vkEnumeratePhysicalDevices(m_instance, &count, nullptr), "Enumerate GPUs");
         std::vector<VkPhysicalDevice> devices(count);
         Check(vkEnumeratePhysicalDevices(m_instance, &count, devices.data()), "Enumerate GPUs");
@@ -102,7 +96,7 @@ Device::Device(SDL_Window* window)
             }
             if (m_physical) break;
         }
-        if (!m_physical) throw std::runtime_error("No Vulkan GPU supports graphics and presentation on a shared queue");
+        PICO_ASSERT(m_physical != VK_NULL_HANDLE, "No Vulkan GPU supports graphics and presentation on a shared queue");
         float                   priority = 1.0f;
         VkDeviceQueueCreateInfo queue{VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO};
         queue.queueFamilyIndex       = m_queueFamily;
@@ -124,10 +118,10 @@ Device::Device(SDL_Window* window)
         vkGetPhysicalDeviceProperties(m_physical, &properties);
         LOG_DEBUG("Vulkan device: {}", properties.deviceName);
     }
-    catch (...)
+    catch (const std::exception& exception)
     {
         Destroy();
-        throw;
+        PICO_ASSERT_FAIL("Vulkan device initialization failed: {}", exception.what());
     }
 }
 
@@ -161,7 +155,7 @@ uint32_t Device::FindMemory(uint32_t bits, VkMemoryPropertyFlags properties) con
     vkGetPhysicalDeviceMemoryProperties(m_physical, &memory);
     for (uint32_t i = 0; i < memory.memoryTypeCount; ++i)
         if ((bits & (1u << i)) && (memory.memoryTypes[i].propertyFlags & properties) == properties) return i;
-    throw std::runtime_error("No compatible Vulkan memory type");
+    PICO_ASSERT_FAIL("No compatible Vulkan memory type");
 }
 void Device::Immediate(const std::function<void(VkCommandBuffer)>& record)
 {
@@ -184,10 +178,10 @@ void Device::Immediate(const std::function<void(VkCommandBuffer)>& record)
         Check(vkQueueSubmit(m_queue, 1, &submit, VK_NULL_HANDLE), "Submit upload");
         Check(vkQueueWaitIdle(m_queue), "Wait for upload");
     }
-    catch (...)
+    catch (const std::exception& exception)
     {
         vkFreeCommandBuffers(m_device, m_pool, 1, &command);
-        throw;
+        PICO_ASSERT_FAIL("Immediate command submission failed: {}", exception.what());
     }
     vkFreeCommandBuffers(m_device, m_pool, 1, &command);
 }

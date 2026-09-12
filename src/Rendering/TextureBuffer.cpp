@@ -17,15 +17,15 @@ TextureBuffer::TextureBuffer(Device& device, VkFormat format, std::span<const st
         texelSize = 16;
         break;
     default:
-        throw std::runtime_error("Unsupported TextureBuffer format");
+        PICO_ASSERT_FAIL("Unsupported TextureBuffer format: {}", static_cast<int>(format));
     }
     VkFormatProperties properties;
     vkGetPhysicalDeviceFormatProperties(device.Physical(), format, &properties);
     VkPhysicalDeviceProperties limits;
     vkGetPhysicalDeviceProperties(device.Physical(), &limits);
-    if (!(properties.bufferFeatures & VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT) || texels.empty() ||
-        texels.size() % texelSize || texels.size() / texelSize > limits.limits.maxTexelBufferElements)
-        throw std::runtime_error("Invalid or unsupported texel buffer");
+    PICO_ASSERT((properties.bufferFeatures & VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT) && !texels.empty() &&
+                texels.size() % texelSize == 0 && texels.size() / texelSize <= limits.limits.maxTexelBufferElements,
+                "Invalid or unsupported texel buffer");
     m_buffer = Buffer::Upload(device, texels, VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT);
     VkBufferViewCreateInfo info{VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO};
     info.buffer = m_buffer->Handle();

@@ -12,7 +12,7 @@ struct Vertex
 std::filesystem::path ShaderPath(const char* name)
 {
     const char* base = SDL_GetBasePath();
-    if (!base) throw std::runtime_error(SDL_GetError());
+    PICO_ASSERT(base != nullptr, "{}", SDL_GetError());
     return std::filesystem::path(base) / "shaders" / name;
 }
 } // namespace

@@ -12,6 +12,7 @@ int Application::Run()
 
     try
     {
+        PICO_ASSERT_FAIL("testing failed: {}", "test");
         Engine engine;
         engine.Initialize();
         Window&      window   = engine.GetWindow();
