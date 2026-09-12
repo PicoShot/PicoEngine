@@ -24,27 +24,28 @@ class Window
     Window(Window&& other) noexcept;
     Window& operator=(Window&& other) noexcept;
 
-    bool IsValid() const
+    bool IsValid() const noexcept
     {
         return m_handle != nullptr;
     }
-    SDL_Window* GetHandle() const
+
+    SDL_Window* GetHandle() const noexcept
     {
         return m_handle;
     }
 
-    int32_t     GetWidth() const;
-    int32_t     GetHeight() const;
-    std::string GetTitle() const;
+    int32_t     GetWidth() const noexcept;
+    int32_t     GetHeight() const noexcept;
+    std::string GetTitle() const noexcept;
     void        SetTitle(std::string_view title);
     void        PollEvents();
 
-    bool ShouldClose() const
+    bool ShouldClose() const noexcept
     {
         return m_shouldClose;
     }
 
-    void RequestClose()
+    void RequestClose() noexcept
     {
         m_shouldClose = true;
     }

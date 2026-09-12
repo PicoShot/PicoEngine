@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Core/Debug/Debug.hpp"
+#include "Debug/Debug.hpp"
 
 namespace PicoEngine
 {

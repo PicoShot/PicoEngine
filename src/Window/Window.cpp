@@ -1,6 +1,6 @@
 #include "Window.hpp"
 
-#include "Core/Debug/Debug.hpp"
+#include "Debug/Debug.hpp"
 
 namespace PicoEngine
 {
@@ -14,14 +14,12 @@ Window::Window(const WindowDesc& desc) : m_width(desc.width), m_height(desc.heig
 {
     const bool wasFirst = (s_videoInitCount == 0);
     if (wasFirst)
-    {
         PICO_ASSERT(SDL_Init(SDL_INIT_VIDEO), "SDL_Init failed: {}", SDL_GetError());
-    }
 
     SDL_WindowFlags flags = 0;
 
     flags |= SDL_WINDOW_VULKAN;
-    
+
     if (desc.resizable)
         flags |= SDL_WINDOW_RESIZABLE;
 
@@ -71,18 +69,19 @@ Window& Window::operator=(Window&& other) noexcept
     return *this;
 }
 
-int32_t Window::GetWidth() const
+int32_t Window::GetWidth() const noexcept
 {
     return m_width;
 }
 
-int32_t Window::GetHeight() const
+int32_t Window::GetHeight() const noexcept
 {
     return m_height;
 }
 
-std::string Window::GetTitle() const
+std::string Window::GetTitle() const noexcept
 {
+    PICO_ASSERT(m_handle == nullptr, "Window handle is null");
     return std::string(SDL_GetWindowTitle(m_handle));
 }
 
