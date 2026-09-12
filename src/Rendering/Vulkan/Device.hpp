@@ -2,10 +2,10 @@
 #include "Debug/Debug.hpp"
 
 // Preserve the existing Check spelling, but expand at the Vulkan operation's call site.
-#define Check(result, operation) \
-    do \
-    { \
-        const VkResult picoVkResult = (result); \
+#define Check(result, operation)                                                                                       \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        const VkResult picoVkResult = (result);                                                                        \
         PICO_ASSERT(picoVkResult == VK_SUCCESS, "{} failed (VkResult {})", operation, static_cast<int>(picoVkResult)); \
     } while (false)
 

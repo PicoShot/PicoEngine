@@ -44,10 +44,13 @@
 // Lua
 #include <sol/sol.hpp>
 
-// Dear ImGui
+// ImGui
 #include <imgui.h>
 #include <imgui_impl_sdl3.h>
 #include <imgui_impl_vulkan.h>
+
+// Shaderc
+#include <shaderc/shaderc.hpp>
 
 // GLM
 #include <glm/glm.hpp>

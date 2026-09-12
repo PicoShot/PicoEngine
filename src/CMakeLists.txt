@@ -39,7 +39,8 @@ target_link_libraries(PicoEngine PRIVATE
                       glm::glm
                       Vulkan::Vulkan
                       sol2::sol2
-                      imgui::imgui)
+                      imgui::imgui
+                      shaderc::shaderc)
 
 
 
