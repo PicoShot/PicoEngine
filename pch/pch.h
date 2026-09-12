@@ -12,6 +12,17 @@
 #endif
 
 // STD
+#include <algorithm>
+#include <array>
+#include <chrono>
+#include <cstddef>
+#include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <functional>
+#include <limits>
+#include <span>
+#include <utility>
 #include <cstdint>
 #include <cstdlib>
 #include <format>
@@ -25,6 +36,10 @@
 
 // SDL3
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_vulkan.h>
+
+// Vulkan
+#include <vulkan/vulkan.h>
 
 // GLM
 #include <glm/glm.hpp>

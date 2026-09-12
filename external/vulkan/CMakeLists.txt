@@ -1,1 +1,1 @@
-find_package(Vulkan REQUIRED GLOBAL)
+find_package(Vulkan REQUIRED COMPONENTS glslc GLOBAL)

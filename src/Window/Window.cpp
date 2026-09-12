@@ -81,7 +81,7 @@ int32_t Window::GetHeight() const noexcept
 
 std::string Window::GetTitle() const noexcept
 {
-    PICO_ASSERT(m_handle == nullptr, "Window handle is null");
+    PICO_ASSERT(m_handle != nullptr, "Window handle is null");
     return std::string(SDL_GetWindowTitle(m_handle));
 }
 

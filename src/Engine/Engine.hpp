@@ -6,6 +6,7 @@ namespace PicoEngine
 {
 
 class Window;
+namespace Rendering { class Renderer; }
 
 class Engine
 {
@@ -32,6 +33,7 @@ class Engine
     }
 
     Window& GetWindow();
+    Rendering::Renderer& GetRenderer();
 
   private:
     static Engine* s_instance;
@@ -39,6 +41,7 @@ class Engine
     bool m_initialized = false;
 
     std::unique_ptr<Window> m_window;
+    std::unique_ptr<Rendering::Renderer> m_renderer;
 };
 
 } // namespace PicoEngine

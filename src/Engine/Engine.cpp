@@ -1,5 +1,6 @@
 #include "Engine.hpp"
 #include "Window/Window.hpp"
+#include "Rendering/Renderer.hpp"
 
 namespace PicoEngine
 {
@@ -24,24 +25,30 @@ void Engine::Initialize()
         return;
 
     m_window      = std::make_unique<Window>(WindowDesc{});
+    m_renderer    = std::make_unique<Rendering::Renderer>(m_window->GetHandle());
     m_initialized = true;
     LOG_DEBUG("Engine initialized");
 }
 
 void Engine::Shutdown()
 {
-    if (!m_initialized)
-        return;
-
+    const bool wasInitialized = m_initialized;
+    m_renderer.reset();
     m_window.reset();
     m_initialized = false;
-    LOG_DEBUG("Engine shut down");
+    if (wasInitialized) LOG_DEBUG("Engine shut down");
 }
 
 Window& Engine::GetWindow()
 {
     PICO_ASSERT(m_window != nullptr, "Engine::GetWindow called before Initialize()");
     return *m_window;
+}
+
+Rendering::Renderer& Engine::GetRenderer()
+{
+    PICO_ASSERT(m_renderer != nullptr, "Renderer accessed before initialization");
+    return *m_renderer;
 }
 
 } // namespace PicoEngine
