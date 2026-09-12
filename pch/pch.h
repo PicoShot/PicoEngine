@@ -44,6 +44,11 @@
 // Lua
 #include <sol/sol.hpp>
 
+// Dear ImGui
+#include <imgui.h>
+#include <imgui_impl_sdl3.h>
+#include <imgui_impl_vulkan.h>
+
 // GLM
 #include <glm/glm.hpp>
 #include <glm/simd/common.h>

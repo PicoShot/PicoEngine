@@ -38,7 +38,8 @@ target_link_libraries(PicoEngine PRIVATE
                       SDL3::SDL3-static
                       glm::glm
                       Vulkan::Vulkan
-                      sol2::sol2)
+                      sol2::sol2
+                      imgui::imgui)
 
 
 
