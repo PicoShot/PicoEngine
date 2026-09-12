@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 4.1)
 project(PicoEngine)
 
 set(CMAKE_CXX_STANDARD 23)
