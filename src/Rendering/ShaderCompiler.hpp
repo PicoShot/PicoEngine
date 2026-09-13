@@ -1,5 +1,10 @@
 #pragma once
 
+namespace PicoEngine::IO
+{
+class Vfs;
+}
+
 namespace PicoEngine::Rendering
 {
 enum class ShaderStage
@@ -11,26 +16,27 @@ enum class ShaderStage
 
 struct CompiledShader
 {
-    std::vector<uint32_t>              spirv;
-    std::vector<std::filesystem::path> dependencies;
+    std::vector<uint32_t>    spirv;
+    std::vector<std::string> dependencies;
 };
 
 class ShaderCompiler
 {
   public:
-    ShaderCompiler();
+    explicit ShaderCompiler(const IO::Vfs& vfs);
     ShaderCompiler(const ShaderCompiler&)            = delete;
     ShaderCompiler& operator=(const ShaderCompiler&) = delete;
 
-    void AddIncludeDir(std::filesystem::path dir);
+    void AddIncludePrefix(std::string prefix);
 
-    CompiledShader CompileFile(const std::filesystem::path& path);
-    CompiledShader CompileFile(const std::filesystem::path& path, ShaderStage stage);
+    CompiledShader CompileFile(std::string_view virtualPath);
+    CompiledShader CompileFile(std::string_view virtualPath, ShaderStage stage);
     CompiledShader CompileSource(std::string_view debugName, std::string_view source, ShaderStage stage,
-                                 const std::filesystem::path& includeDir = {});
+                                 std::string_view includeDir = {});
 
   private:
-    shaderc::Compiler                  m_compiler;
-    std::vector<std::filesystem::path> m_includeDirs;
+    const IO::Vfs&           m_vfs;
+    shaderc::Compiler        m_compiler;
+    std::vector<std::string> m_includePrefixes;
 };
 } // namespace PicoEngine::Rendering

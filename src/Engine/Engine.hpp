@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Debug/Debug.hpp"
+#include "IO/Vfs.hpp"
 
 namespace PicoEngine
 {
@@ -32,15 +33,17 @@ class Engine
         return m_initialized;
     }
 
-    Window& GetWindow();
+    Window&             GetWindow();
     Rendering::Renderer& GetRenderer();
+    IO::Vfs&            GetVfs();
 
   private:
     static Engine* s_instance;
 
     bool m_initialized = false;
 
-    std::unique_ptr<Window> m_window;
+    IO::Vfs                          m_vfs;
+    std::unique_ptr<Window>          m_window;
     std::unique_ptr<Rendering::Renderer> m_renderer;
 };
 

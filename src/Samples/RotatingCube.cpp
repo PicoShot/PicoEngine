@@ -1,4 +1,5 @@
 #include "RotatingCube.hpp"
+#include "IO/Vfs.hpp"
 #include "Rendering/ShaderCompiler.hpp"
 
 namespace PicoEngine
@@ -10,18 +11,12 @@ struct Vertex
     glm::vec3 position;
     glm::vec3 color;
 };
-std::filesystem::path ShaderPath(const char* name)
-{
-    const char* base = SDL_GetBasePath();
-    PICO_ASSERT(base != nullptr, "{}", SDL_GetError());
-    return std::filesystem::path(base) / "assets" / "shaders" / name;
-}
 } // namespace
-RotatingCube::RotatingCube(Rendering::Renderer& renderer) : m_renderer(renderer)
+RotatingCube::RotatingCube(Rendering::Renderer& renderer, IO::Vfs& vfs) : m_renderer(renderer)
 {
-    Rendering::ShaderCompiler compiler;
-    auto                      vertexSpv   = compiler.CompileFile(ShaderPath("cube.vert"));
-    auto                      fragmentSpv = compiler.CompileFile(ShaderPath("cube.frag"));
+    Rendering::ShaderCompiler compiler(vfs);
+    auto                      vertexSpv   = compiler.CompileFile("shaders/cube.vert");
+    auto                      fragmentSpv = compiler.CompileFile("shaders/cube.frag");
 
     m_vertexShader   = std::make_unique<Rendering::Shader>(renderer.GetDevice(), vertexSpv.spirv, "cube.vert");
     m_fragmentShader = std::make_unique<Rendering::Shader>(renderer.GetDevice(), fragmentSpv.spirv, "cube.frag");

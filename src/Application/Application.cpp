@@ -16,7 +16,7 @@ int Application::Run()
         engine.Initialize();
         Window&      window   = engine.GetWindow();
         auto&        renderer = engine.GetRenderer();
-        RotatingCube cube(renderer);
+        RotatingCube cube(renderer, engine.GetVfs());
         const auto   start = std::chrono::steady_clock::now();
         while (!window.ShouldClose())
         {

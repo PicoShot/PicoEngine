@@ -4,7 +4,6 @@ namespace PicoEngine::Rendering
 {
 TextureBuffer::TextureBuffer(Device& device, VkFormat format, std::span<const std::byte> texels) : m_device(device)
 {
-    // Keep the initial format contract explicit; more formats can be added with their byte sizes.
     uint32_t texelSize = 0;
     switch (format)
     {
@@ -24,7 +23,7 @@ TextureBuffer::TextureBuffer(Device& device, VkFormat format, std::span<const st
     VkPhysicalDeviceProperties limits;
     vkGetPhysicalDeviceProperties(device.Physical(), &limits);
     PICO_ASSERT((properties.bufferFeatures & VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT) && !texels.empty() &&
-                texels.size() % texelSize == 0 && texels.size() / texelSize <= limits.limits.maxTexelBufferElements,
+                    texels.size() % texelSize == 0 && texels.size() / texelSize <= limits.limits.maxTexelBufferElements,
                 "Invalid or unsupported texel buffer");
     m_buffer = Buffer::Upload(device, texels, VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT);
     VkBufferViewCreateInfo info{VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO};

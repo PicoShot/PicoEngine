@@ -21,6 +21,7 @@
 #include <fstream>
 #include <functional>
 #include <limits>
+#include <ranges>
 #include <span>
 #include <utility>
 #include <cstdint>

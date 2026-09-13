@@ -1,5 +1,6 @@
 #include "ShaderCompiler.hpp"
 #include "Debug/Debug.hpp"
+#include "IO/Vfs.hpp"
 
 namespace PicoEngine::Rendering
 {
@@ -21,26 +22,82 @@ shaderc_shader_kind ToKind(ShaderStage stage)
     PICO_ASSERT_FAIL("Unknown shader stage: {}", static_cast<int>(stage));
 }
 
-ShaderStage StageFromExtension(const std::filesystem::path& path)
+ShaderStage StageFromExtension(std::string_view virtualPath)
 {
-    const auto extension = path.extension().string();
+    const size_t dot = virtualPath.rfind('.');
+    PICO_ASSERT(dot != std::string_view::npos, "Shader path has no extension: '{}'", virtualPath);
+    const std::string_view extension = virtualPath.substr(dot);
     if (extension == ".vert") return ShaderStage::Vertex;
     if (extension == ".frag" || extension == ".fsh") return ShaderStage::Fragment;
     if (extension == ".comp") return ShaderStage::Compute;
-    PICO_ASSERT_FAIL("Cannot deduce shader stage from extension: {}", path.string());
+    PICO_ASSERT_FAIL("Cannot deduce shader stage from extension: '{}'", virtualPath);
+}
+
+std::string VirtualParent(std::string_view virtualPath)
+{
+    const size_t slash = virtualPath.rfind('/');
+    return slash == std::string_view::npos ? std::string{} : std::string(virtualPath.substr(0, slash));
+}
+
+std::string_view VirtualFileName(std::string_view virtualPath)
+{
+    const size_t slash = virtualPath.rfind('/');
+    return slash == std::string_view::npos ? virtualPath : virtualPath.substr(slash + 1);
+}
+
+bool JoinVirtual(std::string_view baseDir, std::string_view segment, std::string& out)
+{
+    std::vector<std::string_view> parts;
+    if (!baseDir.empty())
+    {
+        for (size_t start = 0; start < baseDir.size();)
+        {
+            const size_t end = baseDir.find('/', start);
+            parts.push_back(baseDir.substr(start, end == std::string_view::npos ? end : end - start));
+            if (end == std::string_view::npos) break;
+            start = end + 1;
+        }
+    }
+    for (size_t start = 0; start < segment.size();)
+    {
+        const size_t           end  = segment.find('/', start);
+        const std::string_view part = segment.substr(start, end == std::string_view::npos ? end : end - start);
+        if (part.empty() || part == ".")
+        { /* skip */
+        }
+        else if (part == "..")
+        {
+            if (parts.empty()) return false;
+            parts.pop_back();
+        }
+        else
+        {
+            parts.push_back(part);
+        }
+        if (end == std::string_view::npos) break;
+        start = end + 1;
+    }
+    out.clear();
+    for (size_t i = 0; i < parts.size(); ++i)
+    {
+        if (i > 0) out += '/';
+        out += parts[i];
+    }
+    return true;
 }
 
 struct IncludeRecord
 {
-    std::string name;    // absolute path; empty signals a failed inclusion
+    std::string name;    // virtual path; empty signals a failed inclusion
     std::string content; // file text, or the error message on failure
 };
 
-class FileIncluder final : public shaderc::CompileOptions::IncluderInterface
+class VfsIncluder final : public shaderc::CompileOptions::IncluderInterface
 {
   public:
-    FileIncluder(std::vector<std::filesystem::path> searchDirs, std::vector<std::filesystem::path>* dependencies)
-        : m_searchDirs(std::move(searchDirs)), m_dependencies(dependencies)
+    VfsIncluder(const IO::Vfs& vfs, std::vector<std::string> searchPrefixes,
+                std::vector<std::string>* dependencies)
+        : m_vfs(vfs), m_searchPrefixes(std::move(searchPrefixes)), m_dependencies(dependencies)
     {
     }
 
@@ -51,8 +108,7 @@ class FileIncluder final : public shaderc::CompileOptions::IncluderInterface
         auto* result      = new shaderc_include_result{};
         result->user_data = record;
 
-        const std::filesystem::path requested(requestedSource);
-        if (Read(requested, type, requestingSource, *record))
+        if (Read(requestedSource, type, requestingSource, *record))
         {
             result->source_name        = record->name.c_str();
             result->source_name_length = record->name.size();
@@ -77,78 +133,80 @@ class FileIncluder final : public shaderc::CompileOptions::IncluderInterface
     }
 
   private:
-    bool Read(const std::filesystem::path& requested, shaderc_include_type type, const char* requestingSource,
+    bool Read(const char* requestedSource, shaderc_include_type type, const char* requestingSource,
               IncludeRecord& record)
     {
-        std::vector<std::filesystem::path> candidates;
-        if (requested.is_absolute())
+        const std::string_view requested(requestedSource != nullptr ? requestedSource : "");
+        if (requested.empty()) return false;
+
+        std::vector<std::string> candidates;
+        if (requested.find('/') != std::string_view::npos)
         {
-            candidates.push_back(requested);
+            candidates.emplace_back(requested);
         }
         else
         {
             if (type == shaderc_include_type_relative && requestingSource != nullptr && requestingSource[0] != '\0')
-                candidates.push_back(std::filesystem::path(requestingSource).parent_path() / requested);
-            for (const auto& dir : m_searchDirs)
-                candidates.push_back(dir / requested);
+            {
+                std::string joined;
+                if (JoinVirtual(VirtualParent(requestingSource), requested, joined)) candidates.push_back(joined);
+            }
+            for (const auto& prefix : m_searchPrefixes)
+                candidates.push_back(prefix + '/' + std::string(requested));
         }
         for (const auto& candidate : candidates)
         {
-            std::error_code statusError;
-            if (!std::filesystem::is_regular_file(candidate, statusError)) continue;
-            std::ifstream file(candidate, std::ios::binary);
-            if (!file) continue;
-            record.content.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
-            if (file.bad()) continue;
-            std::error_code absoluteError;
-            record.name = std::filesystem::absolute(candidate, absoluteError).string();
-            if (absoluteError) record.name = candidate.string();
-            if (m_dependencies != nullptr) m_dependencies->push_back(std::filesystem::path(record.name));
+            if (!m_vfs.Exists(candidate)) continue;
+            record.content = m_vfs.ReadText(candidate);
+            record.name    = candidate;
+            if (m_dependencies != nullptr) m_dependencies->push_back(candidate);
             return true;
         }
         return false;
     }
 
-    std::vector<std::filesystem::path>  m_searchDirs;
-    std::vector<std::filesystem::path>* m_dependencies;
+    const IO::Vfs&            m_vfs;
+    std::vector<std::string>  m_searchPrefixes;
+    std::vector<std::string>* m_dependencies;
 };
 } // namespace
 
-ShaderCompiler::ShaderCompiler() = default;
-
-void ShaderCompiler::AddIncludeDir(std::filesystem::path dir)
+ShaderCompiler::ShaderCompiler(const IO::Vfs& vfs) : m_vfs(vfs)
 {
-    m_includeDirs.push_back(std::move(dir));
 }
 
-CompiledShader ShaderCompiler::CompileFile(const std::filesystem::path& path)
+void ShaderCompiler::AddIncludePrefix(std::string prefix)
 {
-    return CompileFile(path, StageFromExtension(path));
+    PICO_ASSERT(!prefix.empty() && prefix.back() != '/', "Include prefix must be a bare VFS directory: '{}'", prefix);
+    m_includePrefixes.push_back(std::move(prefix));
 }
 
-CompiledShader ShaderCompiler::CompileFile(const std::filesystem::path& path, ShaderStage stage)
+CompiledShader ShaderCompiler::CompileFile(std::string_view virtualPath)
 {
-    std::ifstream file(path, std::ios::binary);
-    PICO_ASSERT(file, "Cannot open shader: {}", path.string());
-    std::string source{std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>{}};
-    PICO_ASSERT(!file.bad(), "Cannot read shader: {}", path.string());
-    std::error_code       absoluteError;
-    std::filesystem::path absolute = std::filesystem::absolute(path, absoluteError);
-    if (absoluteError) absolute = path;
-    return CompileSource(absolute.string(), source, stage, absolute.parent_path());
+    return CompileFile(virtualPath, StageFromExtension(virtualPath));
+}
+
+CompiledShader ShaderCompiler::CompileFile(std::string_view virtualPath, ShaderStage stage)
+{
+    const std::string path(virtualPath);
+    PICO_ASSERT(m_vfs.Exists(path), "Shader not found in VFS: '{}'", path);
+    return CompileSource(path, m_vfs.ReadText(path), stage, VirtualFileName(path));
 }
 
 CompiledShader ShaderCompiler::CompileSource(std::string_view debugName, std::string_view source, ShaderStage stage,
-                                             const std::filesystem::path& includeDir)
+                                             std::string_view includeDir)
 {
     const std::string name(debugName);
     PICO_ASSERT(!source.empty(), "Empty shader source: {}", name);
 
     CompiledShader output;
-    if (!includeDir.empty()) output.dependencies.push_back(includeDir / std::filesystem::path(name).filename());
+    output.dependencies.push_back(name);
 
-    std::vector<std::filesystem::path> searchDirs = m_includeDirs;
-    if (!includeDir.empty()) searchDirs.insert(searchDirs.begin(), includeDir);
+    std::vector<std::string> searchPrefixes = m_includePrefixes;
+    const std::string        sourceDir      = VirtualParent(name);
+    if (!sourceDir.empty()) searchPrefixes.insert(searchPrefixes.begin(), sourceDir);
+    if (!includeDir.empty() && std::string(includeDir) != sourceDir)
+        searchPrefixes.insert(searchPrefixes.begin(), std::string(includeDir));
 
     shaderc::CompileOptions options;
     options.SetSourceLanguage(shaderc_source_language_glsl);
@@ -160,7 +218,7 @@ CompiledShader ShaderCompiler::CompileSource(std::string_view debugName, std::st
     options.SetOptimizationLevel(shaderc_optimization_level_zero);
     options.SetGenerateDebugInfo();
 #endif
-    options.SetIncluder(std::make_unique<FileIncluder>(std::move(searchDirs), &output.dependencies));
+    options.SetIncluder(std::make_unique<VfsIncluder>(m_vfs, std::move(searchPrefixes), &output.dependencies));
 
     const shaderc::SpvCompilationResult result =
         m_compiler.CompileGlslToSpv(source.data(), source.size(), ToKind(stage), name.c_str(), kEntryPoint, options);

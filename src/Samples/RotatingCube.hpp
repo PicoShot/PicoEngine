@@ -5,10 +5,14 @@
 
 namespace PicoEngine
 {
+namespace IO
+{
+class Vfs;
+}
 class RotatingCube
 {
   public:
-    explicit RotatingCube(Rendering::Renderer& renderer);
+    explicit RotatingCube(Rendering::Renderer& renderer, IO::Vfs& vfs);
     ~RotatingCube();
     void Draw(VkCommandBuffer command, float seconds);
 
