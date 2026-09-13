@@ -10,8 +10,15 @@ struct GraphicsPipelineDesc
     const Shader&                                      fragment;
     std::span<const VkVertexInputBindingDescription>   bindings;
     std::span<const VkVertexInputAttributeDescription> attributes;
-    uint32_t                                           pushConstantBytes = 0;
-    bool                                               depthTest         = true;
+    uint32_t                                           pushConstantBytes  = 0;
+    VkShaderStageFlags                                 pushConstantStages = VK_SHADER_STAGE_VERTEX_BIT;
+
+    std::span<const VkSpecializationMapEntry> vertexSpecEntries;
+    std::span<const std::byte>                vertexSpecData;
+    std::span<const VkSpecializationMapEntry> fragmentSpecEntries;
+    std::span<const std::byte>                fragmentSpecData;
+    std::span<const VkDescriptorSetLayout>    descriptorSets;
+    bool                                      depthTest = true;
 };
 
 class GraphicsPipeline

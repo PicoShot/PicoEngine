@@ -4,8 +4,10 @@ namespace PicoEngine::Rendering
 {
 GraphicsPipeline::GraphicsPipeline(Device& device, const GraphicsPipelineDesc& desc) : m_device(device)
 {
-    VkPushConstantRange        push{VK_SHADER_STAGE_VERTEX_BIT, 0, desc.pushConstantBytes};
+    VkPushConstantRange        push{desc.pushConstantStages, 0, desc.pushConstantBytes};
     VkPipelineLayoutCreateInfo layout{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
+    layout.setLayoutCount         = static_cast<uint32_t>(desc.descriptorSets.size());
+    layout.pSetLayouts            = desc.descriptorSets.data();
     layout.pushConstantRangeCount = desc.pushConstantBytes ? 1 : 0;
     layout.pPushConstantRanges    = &push;
     Check(vkCreatePipelineLayout(device.Handle(), &layout, nullptr, &m_layout), "Create pipeline layout");
@@ -21,6 +23,24 @@ GraphicsPipeline::GraphicsPipeline(Device& device, const GraphicsPipelineDesc& d
         stages[0].module = desc.vertex.Handle();
         stages[1].stage  = VK_SHADER_STAGE_FRAGMENT_BIT;
         stages[1].module = desc.fragment.Handle();
+        VkSpecializationInfo vertexSpec{};
+        if (!desc.vertexSpecEntries.empty())
+        {
+            vertexSpec.mapEntryCount      = static_cast<uint32_t>(desc.vertexSpecEntries.size());
+            vertexSpec.pMapEntries        = desc.vertexSpecEntries.data();
+            vertexSpec.dataSize           = desc.vertexSpecData.size();
+            vertexSpec.pData              = desc.vertexSpecData.data();
+            stages[0].pSpecializationInfo = &vertexSpec;
+        }
+        VkSpecializationInfo fragmentSpec{};
+        if (!desc.fragmentSpecEntries.empty())
+        {
+            fragmentSpec.mapEntryCount    = static_cast<uint32_t>(desc.fragmentSpecEntries.size());
+            fragmentSpec.pMapEntries      = desc.fragmentSpecEntries.data();
+            fragmentSpec.dataSize         = desc.fragmentSpecData.size();
+            fragmentSpec.pData            = desc.fragmentSpecData.data();
+            stages[1].pSpecializationInfo = &fragmentSpec;
+        }
         VkPipelineVertexInputStateCreateInfo vertex{VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
         vertex.vertexBindingDescriptionCount   = static_cast<uint32_t>(desc.bindings.size());
         vertex.pVertexBindingDescriptions      = desc.bindings.data();

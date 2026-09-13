@@ -138,22 +138,24 @@ class VfsIncluder final : public shaderc::CompileOptions::IncluderInterface
     {
         const std::string_view requested(requestedSource != nullptr ? requestedSource : "");
         if (requested.empty()) return false;
-
+        
         std::vector<std::string> candidates;
-        if (requested.find('/') != std::string_view::npos)
+        const auto               push = [&candidates](std::string candidate) {
+            if (!candidate.empty() && std::ranges::find(candidates, candidate) == candidates.end())
+                candidates.push_back(std::move(candidate));
+        };
+        const bool             hasSlash   = requested.find('/') != std::string_view::npos;
+        const bool             isRelative = type == shaderc_include_type_relative;
+        const std::string_view requester(requestingSource != nullptr ? requestingSource : "");
+        if (hasSlash) push(std::string(requested));
+        if (isRelative && !requester.empty())
         {
-            candidates.emplace_back(requested);
+            std::string joined;
+            if (JoinVirtual(VirtualParent(requester), requested, joined)) push(joined);
         }
-        else
-        {
-            if (type == shaderc_include_type_relative && requestingSource != nullptr && requestingSource[0] != '\0')
-            {
-                std::string joined;
-                if (JoinVirtual(VirtualParent(requestingSource), requested, joined)) candidates.push_back(joined);
-            }
+        if (!hasSlash)
             for (const auto& prefix : m_searchPrefixes)
-                candidates.push_back(prefix + '/' + std::string(requested));
-        }
+                push(prefix + '/' + std::string(requested));
         for (const auto& candidate : candidates)
         {
             if (!m_vfs.Exists(candidate)) continue;
@@ -190,7 +192,7 @@ CompiledShader ShaderCompiler::CompileFile(std::string_view virtualPath, ShaderS
 {
     const std::string path(virtualPath);
     PICO_ASSERT(m_vfs.Exists(path), "Shader not found in VFS: '{}'", path);
-    return CompileSource(path, m_vfs.ReadText(path), stage, VirtualFileName(path));
+    return CompileSource(path, m_vfs.ReadText(path), stage);
 }
 
 CompiledShader ShaderCompiler::CompileSource(std::string_view debugName, std::string_view source, ShaderStage stage,
