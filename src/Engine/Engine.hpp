@@ -2,12 +2,16 @@
 
 #include "Debug/Debug.hpp"
 #include "IO/Vfs.hpp"
+#include "Time/Time.hpp"
 
 namespace PicoEngine
 {
 
 class Window;
-namespace Rendering { class Renderer; }
+namespace Rendering
+{
+class Renderer;
+}
 
 class Engine
 {
@@ -33,17 +37,23 @@ class Engine
         return m_initialized;
     }
 
-    Window&             GetWindow();
+    bool Tick();
+
+    void Run(const std::function<void()>& onFrame);
+
+    Window&              GetWindow();
     Rendering::Renderer& GetRenderer();
-    IO::Vfs&            GetVfs();
+    IO::Vfs&             GetVfs();
+    Time&                GetTime();
 
   private:
     static Engine* s_instance;
 
     bool m_initialized = false;
 
-    IO::Vfs                          m_vfs;
-    std::unique_ptr<Window>          m_window;
+    Time                                 m_time;
+    IO::Vfs                              m_vfs;
+    std::unique_ptr<Window>              m_window;
     std::unique_ptr<Rendering::Renderer> m_renderer;
 };
 

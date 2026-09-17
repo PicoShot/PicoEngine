@@ -29,8 +29,9 @@ void Engine::Initialize()
     m_vfs.Mount("shaders", std::make_unique<IO::FileBackend>(IO::ExecutableDir() / "assets" / "shaders"));
     m_vfs.Mount("textures", std::make_unique<IO::FileBackend>(IO::ExecutableDir() / "assets" / "textures"));
     m_vfs.Mount("models", std::make_unique<IO::FileBackend>(IO::ExecutableDir() / "assets" / "models"));
-    m_window      = std::make_unique<Window>(WindowDesc{});
-    m_renderer    = std::make_unique<Rendering::Renderer>(m_window->GetHandle());
+    m_window   = std::make_unique<Window>(WindowDesc{});
+    m_renderer = std::make_unique<Rendering::Renderer>(m_window->GetHandle());
+    m_time.Reset();
     m_initialized = true;
     LOG_DEBUG("Engine initialized");
 }
@@ -63,6 +64,28 @@ IO::Vfs& Engine::GetVfs()
 {
     PICO_ASSERT(m_initialized, "VFS accessed before Engine::Initialize()");
     return m_vfs;
+}
+
+Time& Engine::GetTime()
+{
+    PICO_ASSERT(m_initialized, "Time accessed before Engine::Initialize()");
+    return m_time;
+}
+
+bool Engine::Tick()
+{
+    PICO_ASSERT(m_initialized, "Engine::Tick called before Initialize()");
+    m_window->PollEvents();
+    m_time.Update();
+    return !m_window->ShouldClose();
+}
+
+void Engine::Run(const std::function<void()>& onFrame)
+{
+    PICO_ASSERT(m_initialized, "Engine::Run called before Initialize()");
+    PICO_ASSERT(onFrame != nullptr, "Engine::Run requires a frame callback");
+    while (Tick())
+        onFrame();
 }
 
 } // namespace PicoEngine

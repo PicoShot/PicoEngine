@@ -1,6 +1,5 @@
 #include "Application.hpp"
 #include "Engine/Engine.hpp"
-#include "Window/Window.hpp"
 #include "Samples/RotatingCube.hpp"
 #include "Debug/Debug.hpp"
 
@@ -14,21 +13,15 @@ int Application::Run()
     {
         Engine engine;
         engine.Initialize();
-        Window&      window   = engine.GetWindow();
         auto&        renderer = engine.GetRenderer();
         RotatingCube cube(renderer, engine.GetVfs());
-        const auto   start = std::chrono::steady_clock::now();
-        while (!window.ShouldClose())
-        {
-            window.PollEvents();
-            if (window.ShouldClose()) break;
+        engine.Run([&]() {
             if (auto command = renderer.BeginFrame())
             {
-                float seconds = std::chrono::duration<float>(std::chrono::steady_clock::now() - start).count();
-                cube.Draw(command, seconds);
+                cube.Draw(command, static_cast<float>(engine.GetTime().GetTime()));
                 renderer.EndFrame();
             }
-        }
+        });
         return 0;
     }
     catch (const std::exception& exception)
