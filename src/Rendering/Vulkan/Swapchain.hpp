@@ -30,8 +30,20 @@ class Swapchain
     {
         return m_presentSemaphores.at(image);
     }
+    uint64_t TakePresentId()
+    {
+        const uint64_t id = m_nextPresentId++;
+        m_lastPresentId   = id;
+        return id;
+    }
+    bool HasPendingPresent() const noexcept
+    {
+        return m_lastPresentId != 0;
+    }
+    void WaitForPreviousPresent(uint64_t timeoutNanoseconds) const;
 
   private:
+    static constexpr uint64_t               kNoPresentId = 0;
     void                                    Destroy() noexcept;
     Device&                                 m_device;
     VkSwapchainKHR                          m_swapchain = VK_NULL_HANDLE;
@@ -42,5 +54,7 @@ class Swapchain
     std::vector<VkFramebuffer>              m_framebuffers;
     // Presentation consumes these asynchronously: use one per swapchain image, not per frame.
     std::vector<VkSemaphore> m_presentSemaphores;
+    uint64_t                 m_nextPresentId = 1;
+    uint64_t                 m_lastPresentId = kNoPresentId;
 };
 } // namespace PicoEngine::Rendering

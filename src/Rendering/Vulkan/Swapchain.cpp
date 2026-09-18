@@ -6,12 +6,14 @@ namespace PicoEngine::Rendering
 namespace
 {
 const char*      PresentModeName(VkPresentModeKHR mode) noexcept;
-VkPresentModeKHR ChoosePresentMode(VkPhysicalDevice physical, VkSurfaceKHR surface, bool vsync)
+VkPresentModeKHR ChoosePresentMode(Device& device, bool vsync)
 {
     uint32_t count = 0;
-    Check(vkGetPhysicalDeviceSurfacePresentModesKHR(physical, surface, &count, nullptr), "Query present modes");
+    Check(vkGetPhysicalDeviceSurfacePresentModesKHR(device.Physical(), device.Surface(), &count, nullptr),
+          "Query present modes");
     std::vector<VkPresentModeKHR> modes(count);
-    Check(vkGetPhysicalDeviceSurfacePresentModesKHR(physical, surface, &count, modes.data()), "Query present modes");
+    Check(vkGetPhysicalDeviceSurfacePresentModesKHR(device.Physical(), device.Surface(), &count, modes.data()),
+          "Query present modes");
     PICO_ASSERT(!modes.empty(), "Surface has no present modes");
     std::string reported;
     for (const auto reportedMode : modes)
@@ -23,15 +25,19 @@ VkPresentModeKHR ChoosePresentMode(VkPhysicalDevice physical, VkSurfaceKHR surfa
     LOG_DEBUG("Supported present modes: {}", reported);
     const auto supported = [&](VkPresentModeKHR candidate) { return std::find(modes.begin(), modes.end(), candidate) != modes.end(); };
 
-    static constexpr VkPresentModeKHR       kUncapped[] = {VK_PRESENT_MODE_IMMEDIATE_KHR, VK_PRESENT_MODE_FIFO_RELAXED_KHR,
-                                                           VK_PRESENT_MODE_FIFO_KHR};
-    static constexpr VkPresentModeKHR       kTearFree[] = {VK_PRESENT_MODE_MAILBOX_KHR,
-                                                           VK_PRESENT_MODE_FIFO_LATEST_READY_EXT,
-                                                           VK_PRESENT_MODE_FIFO_KHR};
-    const std::span<const VkPresentModeKHR> preferences = vsync ? kTearFree : kUncapped;
-    for (const auto preference : preferences)
-        if (supported(preference))
-            return preference;
+    if (vsync)
+    {
+        if (supported(VK_PRESENT_MODE_MAILBOX_KHR))
+            return VK_PRESENT_MODE_MAILBOX_KHR;
+        if (device.IsExtensionEnabled(VK_EXT_PRESENT_MODE_FIFO_LATEST_READY_EXTENSION_NAME) &&
+            supported(VK_PRESENT_MODE_FIFO_LATEST_READY_EXT))
+            return VK_PRESENT_MODE_FIFO_LATEST_READY_EXT;
+        return VK_PRESENT_MODE_FIFO_KHR;
+    }
+    if (supported(VK_PRESENT_MODE_IMMEDIATE_KHR))
+        return VK_PRESENT_MODE_IMMEDIATE_KHR;
+    if (supported(VK_PRESENT_MODE_FIFO_RELAXED_KHR))
+        return VK_PRESENT_MODE_FIFO_RELAXED_KHR;
     return VK_PRESENT_MODE_FIFO_KHR;
 }
 const char* PresentModeName(VkPresentModeKHR mode) noexcept
@@ -96,7 +102,7 @@ Swapchain::Swapchain(Device& device, VkExtent2D requestedExtent, bool vsync) : m
                 info.compositeAlpha = alpha;
                 break;
             }
-        const VkPresentModeKHR presentMode = ChoosePresentMode(device.Physical(), device.Surface(), vsync);
+        const VkPresentModeKHR presentMode = ChoosePresentMode(device, vsync);
         info.presentMode                   = presentMode;
         info.clipped                       = VK_TRUE;
         Check(vkCreateSwapchainKHR(device.Handle(), &info, nullptr, &m_swapchain), "Create swapchain");
@@ -177,8 +183,9 @@ Swapchain::Swapchain(Device& device, VkExtent2D requestedExtent, bool vsync) : m
             VkSemaphoreCreateInfo semaphore{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
             Check(vkCreateSemaphore(device.Handle(), &semaphore, nullptr, &m_presentSemaphores[i]), "Create presentation semaphore");
         }
-        LOG_DEBUG("Swapchain created: {}x{}, {} images, present mode {}", m_extent.width, m_extent.height, count,
-                  PresentModeName(presentMode));
+        LOG_DEBUG("Swapchain created: {}x{}, {} images, present mode {} (present-wait {})", m_extent.width,
+                  m_extent.height, count, PresentModeName(presentMode),
+                  m_device.IsExtensionEnabled(VK_KHR_PRESENT_WAIT_EXTENSION_NAME) ? "on" : "off");
     }
     catch (const std::exception& exception)
     {
@@ -189,6 +196,17 @@ Swapchain::Swapchain(Device& device, VkExtent2D requestedExtent, bool vsync) : m
 Swapchain::~Swapchain()
 {
     Destroy();
+}
+void Swapchain::WaitForPreviousPresent(uint64_t timeoutNanoseconds) const
+{
+    if (m_lastPresentId == kNoPresentId || !m_device.IsExtensionEnabled(VK_KHR_PRESENT_WAIT_EXTENSION_NAME))
+        return;
+
+    const VkResult result = m_device.WaitForPresent(m_swapchain, m_lastPresentId, timeoutNanoseconds);
+    if (result == VK_SUCCESS || result == VK_TIMEOUT || result == VK_ERROR_OUT_OF_DATE_KHR ||
+        result == VK_ERROR_SURFACE_LOST_KHR)
+        return;
+    Check(result, "Wait for present");
 }
 void Swapchain::Destroy() noexcept
 {

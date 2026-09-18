@@ -34,6 +34,7 @@ void Engine::Initialize()
     m_renderer  = std::make_unique<Rendering::Renderer>(m_window->GetHandle());
     m_time.Reset();
     m_initialized = true;
+    m_renderer->SetVsync(true);
     LOG_DEBUG("Engine initialized");
 }
 

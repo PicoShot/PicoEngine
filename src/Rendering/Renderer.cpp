@@ -65,6 +65,8 @@ VkCommandBuffer Renderer::BeginFrame()
         m_recreate        = false;
         ++m_generation;
     }
+    if (m_swapchain->HasPendingPresent())
+        m_swapchain->WaitForPreviousPresent(1000000000);
     auto& frame = m_frames[m_frame];
     Check(vkWaitForFences(m_device.Handle(), 1, &frame.fence, VK_TRUE, UINT64_MAX), "Wait for frame");
     auto result = vkAcquireNextImageKHR(m_device.Handle(), m_swapchain->Handle(), UINT64_MAX, frame.acquired, VK_NULL_HANDLE, &m_image);
@@ -132,7 +134,16 @@ void Renderer::EndFrame()
     info.swapchainCount     = 1;
     info.pSwapchains        = &swapchain;
     info.pImageIndices      = &m_image;
-    auto result             = vkQueuePresentKHR(m_device.Queue(), &info);
+    VkPresentIdKHR presentIdInfo{VK_STRUCTURE_TYPE_PRESENT_ID_KHR};
+    uint64_t       presentId = 0;
+    if (m_device.IsExtensionEnabled(VK_KHR_PRESENT_WAIT_EXTENSION_NAME))
+    {
+        presentId                    = m_swapchain->TakePresentId();
+        presentIdInfo.swapchainCount = 1;
+        presentIdInfo.pPresentIds    = &presentId;
+        info.pNext                   = &presentIdInfo;
+    }
+    auto result = vkQueuePresentKHR(m_device.Queue(), &info);
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
         m_recreate = true;
     else

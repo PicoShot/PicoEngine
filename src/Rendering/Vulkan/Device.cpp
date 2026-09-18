@@ -97,18 +97,46 @@ Device::Device(SDL_Window* window)
             if (m_physical) break;
         }
         PICO_ASSERT(m_physical != VK_NULL_HANDLE, "No Vulkan GPU supports graphics and presentation on a shared queue");
+        uint32_t availableCount = 0;
+        Check(vkEnumerateDeviceExtensionProperties(m_physical, nullptr, &availableCount, nullptr), "Enumerate device extensions");
+        std::vector<VkExtensionProperties> available(availableCount);
+        Check(vkEnumerateDeviceExtensionProperties(m_physical, nullptr, &availableCount, available.data()), "Enumerate device extensions");
+        const auto hasExtension = [&](const char* name) {
+            return std::ranges::any_of(available,
+                                       [&](const auto& e) { return std::strcmp(e.extensionName, name) == 0; });
+        };
         float                   priority = 1.0f;
         VkDeviceQueueCreateInfo queue{VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO};
         queue.queueFamilyIndex = m_queueFamily;
         queue.queueCount       = 1;
         queue.pQueuePriorities = &priority;
         std::vector<const char*> deviceExtensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-        VkDeviceCreateInfo       device{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
+        if (hasExtension(VK_EXT_PRESENT_MODE_FIFO_LATEST_READY_EXTENSION_NAME))
+            deviceExtensions.push_back(VK_EXT_PRESENT_MODE_FIFO_LATEST_READY_EXTENSION_NAME);
+        VkPhysicalDevicePresentIdFeaturesKHR   presentIdFeatures{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_FEATURES_KHR};
+        VkPhysicalDevicePresentWaitFeaturesKHR presentWaitFeatures{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR};
+        const bool                             wantPresentWait =
+            hasExtension(VK_KHR_PRESENT_WAIT_EXTENSION_NAME) && hasExtension(VK_KHR_PRESENT_ID_EXTENSION_NAME);
+        if (wantPresentWait)
+        {
+            deviceExtensions.push_back(VK_KHR_PRESENT_ID_EXTENSION_NAME);
+            deviceExtensions.push_back(VK_KHR_PRESENT_WAIT_EXTENSION_NAME);
+            presentIdFeatures.presentId     = VK_TRUE;
+            presentWaitFeatures.presentWait = VK_TRUE;
+            presentWaitFeatures.pNext       = &presentIdFeatures;
+        }
+        VkDeviceCreateInfo device{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
         device.queueCreateInfoCount    = 1;
         device.pQueueCreateInfos       = &queue;
         device.enabledExtensionCount   = static_cast<uint32_t>(deviceExtensions.size());
         device.ppEnabledExtensionNames = deviceExtensions.data();
+        if (wantPresentWait)
+            device.pNext = &presentWaitFeatures;
         Check(vkCreateDevice(m_physical, &device, nullptr, &m_device), "Create device");
+        m_enabledExtensions = deviceExtensions;
+        if (wantPresentWait)
+            m_waitForPresent =
+                reinterpret_cast<PFN_vkWaitForPresentKHR>(vkGetDeviceProcAddr(m_device, "vkWaitForPresentKHR"));
         vkGetDeviceQueue(m_device, m_queueFamily, 0, &m_queue);
         VkCommandPoolCreateInfo pool{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
         pool.flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
@@ -116,7 +144,10 @@ Device::Device(SDL_Window* window)
         Check(vkCreateCommandPool(m_device, &pool, nullptr, &m_pool), "Create command pool");
         VkPhysicalDeviceProperties properties;
         vkGetPhysicalDeviceProperties(m_physical, &properties);
-        LOG_DEBUG("Vulkan device: {}", properties.deviceName);
+        LOG_DEBUG("Vulkan device: {} (fifo-latest-ready {}, present-id advertised {}, present-wait {})", properties.deviceName,
+                  IsExtensionEnabled(VK_EXT_PRESENT_MODE_FIFO_LATEST_READY_EXTENSION_NAME) ? "on" : "off",
+                  hasExtension(VK_KHR_PRESENT_ID_EXTENSION_NAME) ? "yes" : "no",
+                  IsExtensionEnabled(VK_KHR_PRESENT_WAIT_EXTENSION_NAME) ? "on" : "off");
     }
     catch (const std::exception& exception)
     {
@@ -148,6 +179,15 @@ void Device::Destroy() noexcept
 void Device::WaitIdle() const
 {
     Check(vkDeviceWaitIdle(m_device), "Wait for device");
+}
+bool Device::IsExtensionEnabled(std::string_view name) const noexcept
+{
+    return std::ranges::any_of(m_enabledExtensions, [&](const char* enabled) { return enabled == name; });
+}
+VkResult Device::WaitForPresent(VkSwapchainKHR swapchain, uint64_t presentId, uint64_t timeoutNanoseconds) const
+{
+    PICO_ASSERT(m_waitForPresent != nullptr, "Present-wait not enabled on device");
+    return m_waitForPresent(m_device, swapchain, presentId, timeoutNanoseconds);
 }
 uint32_t Device::FindMemory(uint32_t bits, VkMemoryPropertyFlags properties) const
 {
