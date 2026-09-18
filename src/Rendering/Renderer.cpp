@@ -60,7 +60,7 @@ VkCommandBuffer Renderer::BeginFrame()
         m_device.WaitIdle();
         // Destroy first: a native window must not have two non-retired swapchains.
         m_swapchain.reset();
-        m_swapchain       = std::make_unique<Swapchain>(m_device, extent);
+        m_swapchain       = std::make_unique<Swapchain>(m_device, extent, m_vsync);
         m_requestedExtent = extent;
         m_recreate        = false;
         ++m_generation;
@@ -98,6 +98,14 @@ VkCommandBuffer Renderer::BeginFrame()
     vkCmdSetScissor(frame.command, 0, 1, &scissor);
     m_active = true;
     return frame.command;
+}
+void Renderer::SetVsync(bool enabled)
+{
+    if (enabled == m_vsync)
+        return;
+    m_vsync    = enabled;
+    m_recreate = true;
+    LOG_DEBUG("Vsync {}", enabled ? "enabled" : "disabled");
 }
 void Renderer::EndFrame()
 {

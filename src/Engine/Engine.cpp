@@ -29,8 +29,9 @@ void Engine::Initialize()
     m_vfs.Mount("shaders", std::make_unique<IO::FileBackend>(IO::ExecutableDir() / "assets" / "shaders"));
     m_vfs.Mount("textures", std::make_unique<IO::FileBackend>(IO::ExecutableDir() / "assets" / "textures"));
     m_vfs.Mount("models", std::make_unique<IO::FileBackend>(IO::ExecutableDir() / "assets" / "models"));
-    m_window   = std::make_unique<Window>(WindowDesc{});
-    m_renderer = std::make_unique<Rendering::Renderer>(m_window->GetHandle());
+    m_window    = std::make_unique<Window>(WindowDesc{});
+    m_baseTitle = m_window->GetTitle();
+    m_renderer  = std::make_unique<Rendering::Renderer>(m_window->GetHandle());
     m_time.Reset();
     m_initialized = true;
     LOG_DEBUG("Engine initialized");
@@ -77,6 +78,7 @@ bool Engine::Tick()
     PICO_ASSERT(m_initialized, "Engine::Tick called before Initialize()");
     m_window->PollEvents();
     m_time.Update();
+    UpdateTitleBar();
     return !m_window->ShouldClose();
 }
 
@@ -86,6 +88,18 @@ void Engine::Run(const std::function<void()>& onFrame)
     PICO_ASSERT(onFrame != nullptr, "Engine::Run requires a frame callback");
     while (Tick())
         onFrame();
+}
+
+void Engine::UpdateTitleBar()
+{
+    const float fps = m_time.GetFps();
+    if (fps <= 0.0f)
+        return;
+    const int shown = static_cast<int>(fps + 0.5f);
+    if (shown == m_lastShownFps)
+        return;
+    m_lastShownFps = shown;
+    m_window->SetTitle(std::format("{} - {} FPS", m_baseTitle, shown));
 }
 
 } // namespace PicoEngine

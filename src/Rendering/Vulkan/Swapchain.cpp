@@ -3,7 +3,46 @@
 
 namespace PicoEngine::Rendering
 {
-Swapchain::Swapchain(Device& device, VkExtent2D requestedExtent) : m_device(device)
+namespace
+{
+VkPresentModeKHR ChoosePresentMode(VkPhysicalDevice physical, VkSurfaceKHR surface, bool vsync)
+{
+    uint32_t count = 0;
+    Check(vkGetPhysicalDeviceSurfacePresentModesKHR(physical, surface, &count, nullptr), "Query present modes");
+    std::vector<VkPresentModeKHR> modes(count);
+    Check(vkGetPhysicalDeviceSurfacePresentModesKHR(physical, surface, &count, modes.data()), "Query present modes");
+    PICO_ASSERT(!modes.empty(), "Surface has no present modes");
+    const auto supported = [&](VkPresentModeKHR mode) { return std::find(modes.begin(), modes.end(), mode) != modes.end(); };
+    if (vsync)
+    {
+        if (supported(VK_PRESENT_MODE_MAILBOX_KHR))
+            return VK_PRESENT_MODE_MAILBOX_KHR;
+        return VK_PRESENT_MODE_FIFO_KHR;
+    }
+    if (supported(VK_PRESENT_MODE_IMMEDIATE_KHR))
+        return VK_PRESENT_MODE_IMMEDIATE_KHR;
+    if (supported(VK_PRESENT_MODE_FIFO_RELAXED_KHR))
+        return VK_PRESENT_MODE_FIFO_RELAXED_KHR;
+    return VK_PRESENT_MODE_FIFO_KHR;
+}
+const char* PresentModeName(VkPresentModeKHR mode) noexcept
+{
+    switch (mode)
+    {
+    case VK_PRESENT_MODE_IMMEDIATE_KHR:
+        return "Immediate";
+    case VK_PRESENT_MODE_MAILBOX_KHR:
+        return "Mailbox";
+    case VK_PRESENT_MODE_FIFO_KHR:
+        return "Fifo";
+    case VK_PRESENT_MODE_FIFO_RELAXED_KHR:
+        return "FifoRelaxed";
+    default:
+        return "Unknown";
+    }
+}
+} // namespace
+Swapchain::Swapchain(Device& device, VkExtent2D requestedExtent, bool vsync) : m_device(device)
 {
     try
     {
@@ -42,8 +81,9 @@ Swapchain::Swapchain(Device& device, VkExtent2D requestedExtent) : m_device(devi
                 info.compositeAlpha = alpha;
                 break;
             }
-        info.presentMode = VK_PRESENT_MODE_FIFO_KHR;
-        info.clipped     = VK_TRUE;
+        const VkPresentModeKHR presentMode = ChoosePresentMode(device.Physical(), device.Surface(), vsync);
+        info.presentMode                   = presentMode;
+        info.clipped                       = VK_TRUE;
         Check(vkCreateSwapchainKHR(device.Handle(), &info, nullptr, &m_swapchain), "Create swapchain");
         Check(vkGetSwapchainImagesKHR(device.Handle(), m_swapchain, &count, nullptr), "Query swapchain images");
         std::vector<VkImage> images(count);
@@ -122,7 +162,8 @@ Swapchain::Swapchain(Device& device, VkExtent2D requestedExtent) : m_device(devi
             VkSemaphoreCreateInfo semaphore{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
             Check(vkCreateSemaphore(device.Handle(), &semaphore, nullptr, &m_presentSemaphores[i]), "Create presentation semaphore");
         }
-        LOG_DEBUG("Swapchain created: {}x{}, {} images", m_extent.width, m_extent.height, count);
+        LOG_DEBUG("Swapchain created: {}x{}, {} images, present mode {}", m_extent.width, m_extent.height, count,
+                  PresentModeName(presentMode));
     }
     catch (const std::exception& exception)
     {

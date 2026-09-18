@@ -13,7 +13,12 @@ class Renderer
     Renderer&       operator=(const Renderer&) = delete;
     VkCommandBuffer BeginFrame(); // null when minimized or recreating an out-of-date surface
     void            EndFrame();
-    Device&         GetDevice()
+    void            SetVsync(bool enabled); // takes effect on the next frame via swapchain recreation
+    bool            GetVsync() const noexcept
+    {
+        return m_vsync;
+    }
+    Device& GetDevice()
     {
         return m_device;
     }
@@ -48,5 +53,6 @@ class Renderer
     VkExtent2D                 m_requestedExtent{};
     bool                       m_recreate = true;
     bool                       m_active   = false;
+    bool                       m_vsync    = true;
 };
 } // namespace PicoEngine::Rendering

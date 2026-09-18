@@ -13,7 +13,8 @@ void Time::Update()
 {
     const auto now        = std::chrono::steady_clock::now();
     double     rawSeconds = std::chrono::duration<double>(now - m_lastTick).count();
-    m_lastTick            = now;
+
+    m_lastTick = now;
 
     if (m_firstUpdate)
     {
@@ -22,6 +23,15 @@ void Time::Update()
     }
     if (rawSeconds < 0.0)
         rawSeconds = 0.0;
+
+    m_fpsWindowTime += rawSeconds;
+    ++m_fpsWindowFrames;
+    if (m_fpsWindowTime >= kFpsWindowSeconds)
+    {
+        m_fps             = static_cast<float>(static_cast<double>(m_fpsWindowFrames) / m_fpsWindowTime);
+        m_fpsWindowTime   = 0.0;
+        m_fpsWindowFrames = 0;
+    }
 
     const double clamped = std::min(rawSeconds, static_cast<double>(m_maxDeltaTime));
     m_unscaledDeltaTime  = static_cast<float>(clamped);
@@ -40,6 +50,9 @@ void Time::Reset()
     m_unscaledTime      = 0.0;
     m_frameCount        = 0;
     m_firstUpdate       = true;
+    m_fps               = 0.0f;
+    m_fpsWindowTime     = 0.0;
+    m_fpsWindowFrames   = 0;
     LOG_DEBUG("Time reset");
 }
 

@@ -49,12 +49,16 @@ class Engine
   private:
     static Engine* s_instance;
 
+    void UpdateTitleBar();
+
     bool m_initialized = false;
 
     Time                                 m_time;
     IO::Vfs                              m_vfs;
     std::unique_ptr<Window>              m_window;
     std::unique_ptr<Rendering::Renderer> m_renderer;
+    std::string                          m_baseTitle;
+    int                                  m_lastShownFps = -1;
 };
 
 } // namespace PicoEngine

@@ -6,7 +6,7 @@ namespace PicoEngine::Rendering
 class Swapchain
 {
   public:
-    Swapchain(Device& device, VkExtent2D requestedExtent);
+    Swapchain(Device& device, VkExtent2D requestedExtent, bool vsync);
     ~Swapchain();
     Swapchain(const Swapchain&)                = delete;
     Swapchain&     operator=(const Swapchain&) = delete;

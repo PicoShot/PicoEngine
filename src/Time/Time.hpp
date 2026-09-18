@@ -42,6 +42,11 @@ class Time
         return m_frameCount;
     }
 
+    float GetFps() const noexcept
+    {
+        return m_fps;
+    }
+
     float GetTimeScale() const noexcept
     {
         return m_timeScale;
@@ -66,6 +71,11 @@ class Time
     float                                 m_timeScale         = 1.0f;
     float                                 m_maxDeltaTime      = 0.1f;
     bool                                  m_firstUpdate       = true;
+    float                                 m_fps               = 0.0f;
+    double                                m_fpsWindowTime     = 0.0;
+    uint32_t                              m_fpsWindowFrames   = 0;
+
+    static constexpr double kFpsWindowSeconds = 0.5;
 };
 
 } // namespace PicoEngine
