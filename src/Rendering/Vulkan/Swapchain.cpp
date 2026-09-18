@@ -5,6 +5,7 @@ namespace PicoEngine::Rendering
 {
 namespace
 {
+const char*      PresentModeName(VkPresentModeKHR mode) noexcept;
 VkPresentModeKHR ChoosePresentMode(VkPhysicalDevice physical, VkSurfaceKHR surface, bool vsync)
 {
     uint32_t count = 0;
@@ -12,17 +13,25 @@ VkPresentModeKHR ChoosePresentMode(VkPhysicalDevice physical, VkSurfaceKHR surfa
     std::vector<VkPresentModeKHR> modes(count);
     Check(vkGetPhysicalDeviceSurfacePresentModesKHR(physical, surface, &count, modes.data()), "Query present modes");
     PICO_ASSERT(!modes.empty(), "Surface has no present modes");
-    const auto supported = [&](VkPresentModeKHR mode) { return std::find(modes.begin(), modes.end(), mode) != modes.end(); };
-    if (vsync)
+    std::string reported;
+    for (const auto reportedMode : modes)
     {
-        if (supported(VK_PRESENT_MODE_MAILBOX_KHR))
-            return VK_PRESENT_MODE_MAILBOX_KHR;
-        return VK_PRESENT_MODE_FIFO_KHR;
+        if (!reported.empty())
+            reported += '|';
+        reported += std::format("{}({})", PresentModeName(reportedMode), static_cast<int>(reportedMode));
     }
-    if (supported(VK_PRESENT_MODE_IMMEDIATE_KHR))
-        return VK_PRESENT_MODE_IMMEDIATE_KHR;
-    if (supported(VK_PRESENT_MODE_FIFO_RELAXED_KHR))
-        return VK_PRESENT_MODE_FIFO_RELAXED_KHR;
+    LOG_DEBUG("Supported present modes: {}", reported);
+    const auto supported = [&](VkPresentModeKHR candidate) { return std::find(modes.begin(), modes.end(), candidate) != modes.end(); };
+
+    static constexpr VkPresentModeKHR       kUncapped[] = {VK_PRESENT_MODE_IMMEDIATE_KHR, VK_PRESENT_MODE_FIFO_RELAXED_KHR,
+                                                           VK_PRESENT_MODE_FIFO_KHR};
+    static constexpr VkPresentModeKHR       kTearFree[] = {VK_PRESENT_MODE_MAILBOX_KHR,
+                                                           VK_PRESENT_MODE_FIFO_LATEST_READY_EXT,
+                                                           VK_PRESENT_MODE_FIFO_KHR};
+    const std::span<const VkPresentModeKHR> preferences = vsync ? kTearFree : kUncapped;
+    for (const auto preference : preferences)
+        if (supported(preference))
+            return preference;
     return VK_PRESENT_MODE_FIFO_KHR;
 }
 const char* PresentModeName(VkPresentModeKHR mode) noexcept
@@ -37,6 +46,12 @@ const char* PresentModeName(VkPresentModeKHR mode) noexcept
         return "Fifo";
     case VK_PRESENT_MODE_FIFO_RELAXED_KHR:
         return "FifoRelaxed";
+    case VK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR:
+        return "SharedDemandRefresh";
+    case VK_PRESENT_MODE_SHARED_CONTINUOUS_REFRESH_KHR:
+        return "SharedContinuousRefresh";
+    case VK_PRESENT_MODE_FIFO_LATEST_READY_EXT:
+        return "FifoLatestReady";
     default:
         return "Unknown";
     }

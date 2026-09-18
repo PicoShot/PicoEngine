@@ -52,13 +52,13 @@ class Device
 
   private:
     void                     Destroy() noexcept;
-    VkInstance               m_instance    = VK_NULL_HANDLE;
-    VkDebugUtilsMessengerEXT m_debug       = VK_NULL_HANDLE;
-    VkSurfaceKHR             m_surface     = VK_NULL_HANDLE;
-    VkPhysicalDevice         m_physical    = VK_NULL_HANDLE;
-    VkDevice                 m_device      = VK_NULL_HANDLE;
-    VkQueue                  m_queue       = VK_NULL_HANDLE;
-    uint32_t                 m_queueFamily = 0;
-    VkCommandPool            m_pool        = VK_NULL_HANDLE;
+    VkInstance               m_instance        = VK_NULL_HANDLE;
+    VkDebugUtilsMessengerEXT m_debug           = VK_NULL_HANDLE;
+    VkSurfaceKHR             m_surface         = VK_NULL_HANDLE;
+    VkPhysicalDevice         m_physical        = VK_NULL_HANDLE;
+    VkDevice                 m_device          = VK_NULL_HANDLE;
+    VkQueue                  m_queue           = VK_NULL_HANDLE;
+    uint32_t                 m_queueFamily     = 0;
+    VkCommandPool            m_pool            = VK_NULL_HANDLE;
 };
 } // namespace PicoEngine::Rendering
