@@ -26,15 +26,17 @@ void Engine::Initialize()
     if (m_initialized)
         return;
 
-    m_vfs.Mount("shaders", std::make_unique<IO::FileBackend>(IO::ExecutableDir() / "assets" / "shaders"));
-    m_vfs.Mount("textures", std::make_unique<IO::FileBackend>(IO::ExecutableDir() / "assets" / "textures"));
-    m_vfs.Mount("models", std::make_unique<IO::FileBackend>(IO::ExecutableDir() / "assets" / "models"));
+    m_vfs.Mount<IO::FileBackend>("shaders", IO::ExecutableDir() / "assets" / "shaders");
+    m_vfs.Mount<IO::FileBackend>("textures", IO::ExecutableDir() / "assets" / "textures");
+    m_vfs.Mount<IO::FileBackend>("models", IO::ExecutableDir() / "assets" / "models");
+
+    
     m_window    = std::make_unique<Window>(WindowDesc{});
     m_baseTitle = m_window->GetTitle();
     m_renderer  = std::make_unique<Rendering::Renderer>(m_window->GetHandle());
     m_time.Reset();
     m_initialized = true;
-    m_renderer->SetVsync(true);
+    m_renderer->SetVsync(false);
     LOG_DEBUG("Engine initialized");
 }
 

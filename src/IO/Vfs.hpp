@@ -3,6 +3,9 @@
 
 namespace PicoEngine::IO
 {
+template <typename T>
+concept VfsBackend = std::derived_from<T, Backend> && !std::is_abstract_v<T>;
+
 class Vfs
 {
   public:
@@ -12,6 +15,14 @@ class Vfs
     Vfs& operator=(const Vfs&) = delete;
 
     void Mount(std::string prefix, std::unique_ptr<Backend> backend);
+
+    template <VfsBackend T, typename... Args>
+        requires std::constructible_from<T, Args...>
+    void Mount(std::string prefix, Args&&... args)
+    {
+        Mount(std::move(prefix), std::make_unique<T>(std::forward<Args>(args)...));
+    }
+
     void Unmount(std::string_view prefix);
     bool HasMount(std::string_view prefix) const;
 
@@ -29,4 +40,11 @@ class Vfs
 
     std::vector<MountPoint> m_mounts;
 };
+
+template <VfsBackend T, typename... Args>
+    requires std::constructible_from<T, Args...>
+void Mount(Vfs& vfs, std::string prefix, Args&&... args)
+{
+    vfs.template Mount<T>(std::move(prefix), std::forward<Args>(args)...);
+}
 } // namespace PicoEngine::IO
