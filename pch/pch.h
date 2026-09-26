@@ -47,6 +47,9 @@
 // Lua
 #include <sol/sol.hpp>
 
+// EnTT
+#include <entt/entt.hpp>
+
 // ImGui
 #include <imgui.h>
 #include <imgui_impl_sdl3.h>

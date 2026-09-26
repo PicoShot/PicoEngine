@@ -23,7 +23,8 @@ target_link_libraries(PicoEngine PRIVATE
                       sol2::sol2
                       imgui::imgui
                       shaderc::shaderc
-                      stb::stb)
+                      stb::stb
+                      EnTT::EnTT)
 
 
 # Optimizations
