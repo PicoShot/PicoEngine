@@ -98,6 +98,11 @@ if possible external libraries must staticly linked to executable, no dynamic li
   Lua/sol headers from the PCH only (see `pch/pch.h`), keep LuaJIT statically
   linked per the Build section, and keep every binding working on Windows
   and Linux.
+- **Keep `stubs/` in sync with the bindings.** The `stubs/` folder holds Lua
+  declaration stubs (LuaLS annotations) describing the engine API for editors.
+  Whenever a binding changes — new usertype, method, global, or signature change
+  in `ScriptEngine::RegisterTypes` or the bootstrap — update or add the matching
+  stub in the same change. Stubs are editor-only and never affect the build.
 
 ## Design guidance
 
