@@ -1,4 +1,5 @@
 #include "Scene.hpp"
+#include "Component/Behaviour.hpp"
 #include "GameObject/GameObject.hpp"
 #include "Scene/Hierarchy.hpp"
 #include "Transform/Transform.hpp"
@@ -31,13 +32,37 @@ void DecomposeTRS(const glm::mat4& matrix, glm::vec3& outPosition, glm::quat& ou
 
 Scene::Scene(std::string name) : m_name(std::move(name))
 {
+    m_registry.on_destroy<BehaviourList>().connect<&Scene::InvokeOnDestroy>();
     LOG_DEBUG("Scene '{}' created", m_name);
 }
 
 Scene::~Scene()
 {
+    m_registry.on_destroy<BehaviourList>().disconnect<&Scene::InvokeOnDestroy>();
     m_registry.clear();
     LOG_DEBUG("Scene '{}' destroyed", m_name);
+}
+
+void Scene::InvokeOnDestroy(entt::registry& registry, entt::entity entity)
+{
+    BehaviourList* list = registry.try_get<BehaviourList>(entity);
+    if (list == nullptr)
+        return;
+    for (const BehaviourList::Entry& entry : list->entries)
+    {
+        try
+        {
+            entry.behaviour->OnDestroy();
+        }
+        catch (const std::exception& exception)
+        {
+            LOG_ERROR("Behaviour OnDestroy failed: {}", exception.what());
+        }
+        catch (...)
+        {
+            LOG_ERROR("Behaviour OnDestroy failed with unknown error");
+        }
+    }
 }
 
 GameObject Scene::CreateGameObject(const std::string& name)
@@ -104,10 +129,32 @@ void Scene::Clear()
     LOG_DEBUG("Cleared scene '{}' ({} objects)", m_name, count);
 }
 
-void Scene::Update()
+void Scene::Update(float deltaTime)
 {
+    UpdateBehaviours(deltaTime);
     UpdateTransforms();
-    ProcessDestroyQueue();
+    ProcessDestroyQueue(); // Deferred destruction lands at the end of the frame
+}
+
+void Scene::UpdateBehaviours(float deltaTime)
+{
+    for (auto [entity, list] : m_registry.view<BehaviourList>().each())
+    {
+        if (!IsValid(entity))
+            continue;
+        GameObject go(this, entity);
+        if (!go.IsActiveInHierarchy())
+            continue;
+        for (BehaviourList::Entry& entry : list.entries)
+        {
+            if (!entry.started)
+            {
+                entry.behaviour->Start();
+                entry.started = true;
+            }
+            entry.behaviour->Update(deltaTime);
+        }
+    }
 }
 
 void Scene::UpdateTransforms()

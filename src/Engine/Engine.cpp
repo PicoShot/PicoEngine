@@ -30,6 +30,7 @@ void Engine::Initialize()
     m_vfs.Mount<IO::FileBackend>("textures", IO::ExecutableDir() / "assets" / "textures");
     m_vfs.Mount<IO::FileBackend>("models", IO::ExecutableDir() / "assets" / "models");
 
+    m_scripts.SetActiveScene(&m_scene);
     m_window    = std::make_unique<Window>(WindowDesc{});
     m_baseTitle = m_window->GetTitle();
     m_renderer  = std::make_unique<Rendering::Renderer>(m_window->GetHandle());
@@ -75,11 +76,24 @@ Time& Engine::GetTime()
     return m_time;
 }
 
+Scene& Engine::GetScene()
+{
+    PICO_ASSERT(m_initialized, "Scene accessed before Engine::Initialize()");
+    return m_scene;
+}
+
+ScriptEngine& Engine::GetScripts()
+{
+    PICO_ASSERT(m_initialized, "ScriptEngine accessed before Engine::Initialize()");
+    return m_scripts;
+}
+
 bool Engine::Tick()
 {
     PICO_ASSERT(m_initialized, "Engine::Tick called before Initialize()");
     m_window->PollEvents();
     m_time.Update();
+    m_scene.Update(m_time.GetDeltaTime());
     UpdateTitleBar();
     return !m_window->ShouldClose();
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Component/Behaviour.hpp"
 #include "Component/Component.hpp"
 #include "Debug/Debug.hpp"
 #include "Scene/Scene.hpp"
@@ -99,6 +100,21 @@ class GameObject
         static_assert(!std::same_as<T, Transform>, "Transform cannot be removed from a GameObject");
         PICO_ASSERT(HasComponent<T>(), "GameObject does not have this component");
         m_scene->GetRegistry().remove<T>(m_entity);
+    }
+
+    template <typename T, typename... Args>
+        requires std::derived_from<T, Behaviour>
+    T* AddBehaviour(Args&&... args)
+    {
+        PICO_ASSERT(IsValid(), "AddBehaviour on invalid GameObject");
+        BehaviourList& list      = m_scene->GetRegistry().get_or_emplace<BehaviourList>(m_entity);
+        auto           behaviour = std::make_shared<T>(std::forward<Args>(args)...);
+        behaviour->m_scene       = m_scene;
+        behaviour->m_entity      = m_entity;
+        T* raw                   = behaviour.get();
+        list.entries.push_back(BehaviourList::Entry{std::move(behaviour), false});
+        raw->Awake();
+        return raw;
     }
 
     GameObject              GetParent() const;

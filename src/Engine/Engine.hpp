@@ -2,6 +2,8 @@
 
 #include "Debug/Debug.hpp"
 #include "IO/Vfs.hpp"
+#include "Scene/Scene.hpp"
+#include "Scripting/ScriptEngine.hpp"
 #include "Time/Time.hpp"
 
 namespace PicoEngine
@@ -45,6 +47,8 @@ class Engine
     Rendering::Renderer& GetRenderer();
     IO::Vfs&             GetVfs();
     Time&                GetTime();
+    Scene&               GetScene();
+    ScriptEngine&        GetScripts();
 
   private:
     static Engine* s_instance;
@@ -55,6 +59,8 @@ class Engine
 
     Time                                 m_time;
     IO::Vfs                              m_vfs;
+    Scene                                m_scene{"Main"};
+    ScriptEngine                         m_scripts;
     std::unique_ptr<Window>              m_window;
     std::unique_ptr<Rendering::Renderer> m_renderer;
     std::string                          m_baseTitle;

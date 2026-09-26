@@ -27,7 +27,8 @@ class Scene
     void       ProcessDestroyQueue();
     void       Clear();
 
-    void Update();
+    void Update(float deltaTime); // Behaviours, then transforms, then deferred destruction
+    void UpdateBehaviours(float deltaTime);
     void UpdateTransforms();
 
     GameObject              FindByName(const std::string& name) const;
@@ -42,6 +43,7 @@ class Scene
 
   private:
     friend class GameObject;
+    static void InvokeOnDestroy(entt::registry& registry, entt::entity entity);
     void      SetParent(entt::entity child, entt::entity parent, bool keepWorldPosition);
     glm::mat4 ComputeWorldMatrix(entt::entity entity) const;
     void      CollectSubtree(entt::entity root, std::vector<entt::entity>& out) const;
