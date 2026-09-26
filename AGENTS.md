@@ -6,11 +6,11 @@ PicoEngine is a C++ game engine, not just a rendering library. It is being built
 two Unity game developers as a private alternative to Unity for their own games.
 Their Unity experience is the starting point for the engine's design and usage.
 
-The goal is **advanced engine systems with easy-to-use, Unity-like C# APIs**.
-Gameplay should feel familiar: scenes contain game objects, objects have
-transforms and components, and components participate in a managed lifecycle.
-Rendering, physics, audio, animation, input, assets, and UI should work together
-through that model wherever it makes sense.
+The goal is **advanced engine systems with an easy-to-use, Unity-like workflow
+and hybrid Lua/C++ scripting**. Gameplay should feel familiar: scenes contain
+game objects, objects have transforms and components, and components participate
+in a managed lifecycle. Rendering, physics, audio, animation, input, assets, and
+UI should work together through that model wherever it makes sense.
 
 Unity is a reference for the developer experience, not a requirement for exact
 API compatibility, feature parity, or identical internals. Preserve familiar
@@ -60,6 +60,7 @@ if possible external libraries must staticly linked to executable, no dynamic li
   PCH-enabled targets.
 
 ## Logging and assertions
+
 - All logging goes through `Core/Debug/Debug.hpp`. Never use `std::cout`,
   `std::cerr`, or `printf` directly in engine code.
 - Macros (global, no namespace qualification needed):
@@ -80,6 +81,23 @@ if possible external libraries must staticly linked to executable, no dynamic li
   never log per-frame hot paths, and use `PICO_ASSERT` for fatal startup failures
   rather than throwing exceptions. Assertions do not unwind the stack. Catch
   unexpected standard-library/external exceptions at appropriate boundaries.
+
+## Scripting and bindings (hybrid Lua/C++)
+
+- **LuaJIT (via sol2) is the gameplay scripting language; C++ is the performance
+  language.** Hard work — math, storage, iteration, physics, rendering — lives in
+  C++ with no Lua overhead in hot paths. Lua orchestrates gameplay by calling C++
+  bindings. Anything scriptable from Lua must also be usable from pure C++.
+- **Write bindable C++:** expose coarse gameplay verbs (loop in C++, not
+  per-element round-trips through Lua), keep value types (vec3/vec4, ...) and
+  their operations in C++, give engine objects C++-owned lifetime with Lua holding
+  only handles/references (never Lua-GC-owned), keep native/backend handles out of
+  gameplay signatures, and never let exceptions cross the Lua boundary (report via
+  return values and `LOG_ERROR`).
+- **Binding mechanics:** keep bindings behind one layer (a Scripting module), take
+  Lua/sol headers from the PCH only (see `pch/pch.h`), keep LuaJIT statically
+  linked per the Build section, and keep every binding working on Windows
+  and Linux.
 
 ## Design guidance
 
