@@ -15,6 +15,7 @@ struct Transform : public Component
     glm::mat4 LocalMatrix() const;
     void      Translate(const glm::vec3& delta);
     void      Rotate(const glm::vec3& axis, float angleRadians);
+    void      LookAt(const glm::vec3& target); // Points local +Z at the target
 
     glm::vec3 GetForward() const; // +Z rotated
     glm::vec3 GetUp() const;

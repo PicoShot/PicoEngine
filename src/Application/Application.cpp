@@ -1,24 +1,35 @@
 #include "Application.hpp"
-#include "Engine/Engine.hpp"
-#include "Samples/RotatingCube.hpp"
 #include "Debug/Debug.hpp"
+#include "Engine/Engine.hpp"
+#include "IO/Paths.hpp"
+#include "Rendering/Renderer.hpp"
+#include "Rendering/SceneRenderer.hpp"
 
 namespace PicoEngine
 {
 
 int Application::Run()
 {
-
     try
     {
         Engine engine;
         engine.Initialize();
-        auto&        renderer = engine.GetRenderer();
-        RotatingCube cube(renderer, engine.GetVfs());
+        auto& renderer = engine.GetRenderer();
+        auto& scene    = engine.GetScene();
+        auto& scripts  = engine.GetScripts();
+        scripts.SetRenderContext(&renderer.GetDevice(), &engine.GetVfs());
+
+        const std::filesystem::path scriptPath = IO::ExecutableDir() / "assets" / "scripts" / "main.lua";
+        if (!scripts.ExecuteFile(scriptPath))
+        {
+            LOG_ERROR("Application failed: cannot run {}", scriptPath.string());
+            return 1;
+        }
+
         engine.Run([&]() {
             if (auto command = renderer.BeginFrame())
             {
-                cube.Draw(command, static_cast<float>(engine.GetTime().GetTime()));
+                Rendering::SceneRenderer::Render(renderer, scene, command);
                 renderer.EndFrame();
             }
         });

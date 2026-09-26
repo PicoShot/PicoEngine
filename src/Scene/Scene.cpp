@@ -1,6 +1,7 @@
 #include "Scene.hpp"
 #include "Component/Behaviour.hpp"
 #include "GameObject/GameObject.hpp"
+#include "Rendering/Camera.hpp"
 #include "Scene/Hierarchy.hpp"
 #include "Transform/Transform.hpp"
 
@@ -133,7 +134,7 @@ void Scene::Update(float deltaTime)
 {
     UpdateBehaviours(deltaTime);
     UpdateTransforms();
-    ProcessDestroyQueue(); // Deferred destruction lands at the end of the frame
+    ProcessDestroyQueue();
 }
 
 void Scene::UpdateBehaviours(float deltaTime)
@@ -186,6 +187,36 @@ GameObject Scene::FindByName(const std::string& name) const
         if (nameComponent.name == name)
             return GameObject(const_cast<Scene*>(this), entity);
     return GameObject();
+}
+
+GameObject Scene::GetMainCamera() const
+{
+    GameObject fallback;
+    bool       foundMain = false;
+
+    entt::entt_traits<entt::entity>::entity_type fallbackId = (std::numeric_limits<entt::entt_traits<entt::entity>::entity_type>::max)();
+    entt::entt_traits<entt::entity>::entity_type mainId     = (std::numeric_limits<entt::entt_traits<entt::entity>::entity_type>::max)();
+
+    for (auto [entity, camera] : m_registry.view<Camera>().each())
+    {
+        GameObject object(const_cast<Scene*>(this), entity);
+        if (!object.IsActiveInHierarchy())
+            continue;
+        const auto id = entt::to_integral(entity);
+        if (camera.main && id < mainId)
+        {
+            foundMain = true;
+            mainId    = id;
+        }
+        else if (!camera.main && id < fallbackId)
+        {
+            fallback   = object;
+            fallbackId = id;
+        }
+    }
+    if (foundMain)
+        return GameObject(const_cast<Scene*>(this), static_cast<entt::entity>(mainId));
+    return fallback;
 }
 
 std::vector<GameObject> Scene::GetRootGameObjects() const

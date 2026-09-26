@@ -51,3 +51,15 @@ function GameObject:SetParent(parent, keepWorldPosition) end
 
 ---Deferred destruction, processed at the end of the frame with the whole subtree.
 function GameObject:Destroy() end
+
+---@return Camera the new component (every object starts without one)
+function GameObject:AddCamera() end
+
+---@return Camera|nil nil when the object has no Camera or is invalid
+function GameObject:GetCamera() end
+
+---@return MeshRenderer the new component
+function GameObject:AddMeshRenderer() end
+
+---@return MeshRenderer|nil nil when the object has none or is invalid
+function GameObject:GetMeshRenderer() end

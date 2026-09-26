@@ -8,7 +8,7 @@ namespace PicoEngine
 class Behaviour : public Component
 {
   public:
-    virtual ~Behaviour() = default;
+    virtual ~Behaviour();
 
     virtual void Awake();
     virtual void Start();

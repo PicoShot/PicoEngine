@@ -26,6 +26,11 @@ function Transform:Translate(delta) end
 ---@param angleRadians number rotation angle in radians
 function Transform:Rotate(axis, angleRadians) end
 
+---Points local +Z at the target (cameras look along +Z).
+---@overload fun(x: number, y: number, z: number)
+---@param target vec3 world-space point to face
+function Transform:LookAt(target) end
+
 ---@return vec3 world-space position, updated every frame by the Scene
 function Transform:GetWorldPosition() end
 

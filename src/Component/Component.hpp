@@ -10,9 +10,11 @@ struct Transform;
 class Component
 {
   public:
-    GameObject GetGameObject();
-    Scene&     GetScene();
-    Transform& GetTransform();
+    GameObject       GetGameObject();
+    GameObject       GetGameObject() const;
+    Scene&           GetScene();
+    Transform&       GetTransform();
+    const Transform& GetTransform() const;
 
   protected:
     Component() = default;

@@ -27,11 +27,12 @@ class Scene
     void       ProcessDestroyQueue();
     void       Clear();
 
-    void Update(float deltaTime); // Behaviours, then transforms, then deferred destruction
+    void Update(float deltaTime);
     void UpdateBehaviours(float deltaTime);
     void UpdateTransforms();
 
     GameObject              FindByName(const std::string& name) const;
+    GameObject              GetMainCamera() const; // Flagged main camera, else first active camera
     std::vector<GameObject> GetRootGameObjects() const;
     size_t                  GetGameObjectCount() const;
 
@@ -44,9 +45,9 @@ class Scene
   private:
     friend class GameObject;
     static void InvokeOnDestroy(entt::registry& registry, entt::entity entity);
-    void      SetParent(entt::entity child, entt::entity parent, bool keepWorldPosition);
-    glm::mat4 ComputeWorldMatrix(entt::entity entity) const;
-    void      CollectSubtree(entt::entity root, std::vector<entt::entity>& out) const;
+    void        SetParent(entt::entity child, entt::entity parent, bool keepWorldPosition);
+    glm::mat4   ComputeWorldMatrix(entt::entity entity) const;
+    void        CollectSubtree(entt::entity root, std::vector<entt::entity>& out) const;
 
     std::string    m_name;
     entt::registry m_registry;

@@ -1,5 +1,9 @@
 #include "ScriptEngine.hpp"
 #include "GameObject/GameObject.hpp"
+#include "Rendering/Camera.hpp"
+#include "Rendering/Material.hpp"
+#include "Rendering/Mesh.hpp"
+#include "Rendering/MeshRenderer.hpp"
 #include "Scene/Scene.hpp"
 #include "Scripting/LuaBehaviour.hpp"
 #include "Transform/Transform.hpp"
@@ -26,6 +30,22 @@ void ScriptEngine::SetActiveScene(Scene* scene)
         m_lua["scene"] = m_scene;
     else
         m_lua["scene"] = sol::lua_nil;
+}
+
+void ScriptEngine::SetRenderContext(Rendering::Device* device, IO::Vfs* vfs)
+{
+    m_device = device;
+    m_vfs    = vfs;
+}
+
+void ScriptEngine::AttachBehaviour(GameObject target, sol::table behaviour)
+{
+    PICO_ASSERT(target.IsValid(), "AttachBehaviour on invalid GameObject");
+    PICO_ASSERT(behaviour.valid(), "AttachBehaviour needs a behaviour table");
+    sol::table instance          = m_lua.create_table();
+    instance[sol::metatable_key] = m_lua.create_table_with(sol::meta_function::index, behaviour);
+    instance["gameObject"]       = target;
+    target.AddBehaviour<LuaBehaviour>(instance);
 }
 
 bool ScriptEngine::ExecuteString(const std::string& source, const std::string& chunkName)
@@ -85,11 +105,7 @@ GameObject ScriptEngine::AddLuaBehaviour(GameObject target, const std::string& s
         return GameObject();
     }
 
-    sol::table instance = m_lua.create_table();
-    instance[sol::metatable_key] =
-        m_lua.create_table_with(sol::meta_function::index, returned.as<sol::table>());
-    instance["gameObject"] = target;
-    target.AddBehaviour<LuaBehaviour>(instance);
+    AttachBehaviour(target, returned.as<sol::table>());
     return target;
 }
 
@@ -162,8 +178,54 @@ void ScriptEngine::RegisterTypes()
                       [](Transform& transform, float x, float y, float z) { transform.Translate(glm::vec3(x, y, z)); }),
         "Rotate",
         [](Transform& transform, const glm::vec3& axis, float angleRadians) { transform.Rotate(axis, angleRadians); },
+        "LookAt",
+        sol::overload([](Transform& transform, const glm::vec3& target) { transform.LookAt(target); },
+                      [](Transform& transform, float x, float y, float z) { transform.LookAt(glm::vec3(x, y, z)); }),
         "GetWorldPosition", &Transform::GetWorldPosition, "GetForward", &Transform::GetForward,
         "GetUp", &Transform::GetUp, "GetRight", &Transform::GetRight);
+
+    m_lua.new_usertype<Camera>(
+        "Camera", "main", &Camera::main, "fieldOfView", &Camera::fieldOfView,
+        "orthographicSize", &Camera::orthographicSize, "nearClipPlane", &Camera::nearClipPlane,
+        "farClipPlane", &Camera::farClipPlane, "SetPerspective",
+        [](Camera& camera) { camera.mode = ProjectionMode::Perspective; }, "SetOrthographic",
+        [](Camera& camera) { camera.mode = ProjectionMode::Orthographic; });
+
+    m_lua.new_usertype<Rendering::Mesh>("Mesh", "Cube",
+                                        [this]() {
+                                            PICO_ASSERT(m_device != nullptr, "Mesh.Cube needs SetRenderContext");
+                                            return Rendering::Mesh::CreateCube(*m_device);
+                                        });
+
+    m_lua.new_usertype<Rendering::Material>(
+        "Material", "Unlit",
+        sol::overload([this]() {
+                          PICO_ASSERT(m_device != nullptr && m_vfs != nullptr,
+                                      "Material.Unlit needs SetRenderContext");
+                          return Rendering::Material::CreateUnlit(*m_device, *m_vfs); },
+                      [this](const std::string& texturePath) {
+                          PICO_ASSERT(m_device != nullptr && m_vfs != nullptr,
+                                      "Material.Unlit needs SetRenderContext");
+                          return Rendering::Material::CreateUnlit(*m_device, *m_vfs, texturePath);
+                      }),
+        "GetTint", &Rendering::Material::GetTint, "SetTint", &Rendering::Material::SetTint);
+
+    m_lua.new_usertype<MeshRenderer>(
+        "MeshRenderer", "SetMesh",
+        [](MeshRenderer& renderer, std::shared_ptr<Rendering::Mesh> mesh) { renderer.mesh = std::move(mesh); },
+        "SetMaterial",
+        [](MeshRenderer& renderer, std::shared_ptr<Rendering::Material> material) { renderer.material = std::move(material); },
+        "HasMesh", [](const MeshRenderer& renderer) { return renderer.mesh != nullptr; }, "HasMaterial",
+        [](const MeshRenderer& renderer) { return renderer.material != nullptr; });
+
+    m_lua["AttachBehaviour"] = [this](GameObject target, sol::table behaviour) {
+        if (!target.IsValid() || !behaviour.valid())
+        {
+            LOG_ERROR("AttachBehaviour needs a valid GameObject and a behaviour table");
+            return;
+        }
+        AttachBehaviour(target, behaviour);
+    };
 
     m_lua.new_usertype<GameObject>(
         "GameObject", "IsValid", &GameObject::IsValid, "GetName", &GameObject::GetName, "SetName",
@@ -190,7 +252,16 @@ void ScriptEngine::RegisterTypes()
         "SetParent",
         sol::overload([](GameObject& object, GameObject parent) { if (object.IsValid()) object.SetParent(parent); },
                       [](GameObject& object, GameObject parent, bool keepWorldPosition) { if (object.IsValid()) object.SetParent(parent, keepWorldPosition); }),
-        "Destroy", [](GameObject& object) { if (object.IsValid()) object.Destroy(); }, sol::meta_function::equal_to,
+        "Destroy", [](GameObject& object) { if (object.IsValid()) object.Destroy(); },
+        "AddCamera",
+        [](GameObject& object) -> Camera* { return object.IsValid() ? object.AddComponent<Camera>() : nullptr; },
+        "GetCamera",
+        [](GameObject& object) -> Camera* { return object.IsValid() ? object.TryGetComponent<Camera>() : nullptr; },
+        "AddMeshRenderer",
+        [](GameObject& object) -> MeshRenderer* { return object.IsValid() ? object.AddComponent<MeshRenderer>() : nullptr; },
+        "GetMeshRenderer",
+        [](GameObject& object) -> MeshRenderer* { return object.IsValid() ? object.TryGetComponent<MeshRenderer>() : nullptr; },
+        sol::meta_function::equal_to,
         [](const GameObject& a, const GameObject& b) { return a == b; });
 
     m_lua.new_usertype<Scene>(
