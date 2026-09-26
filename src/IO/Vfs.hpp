@@ -41,10 +41,4 @@ class Vfs
     std::vector<MountPoint> m_mounts;
 };
 
-template <VfsBackend T, typename... Args>
-    requires std::constructible_from<T, Args...>
-void Mount(Vfs& vfs, std::string prefix, Args&&... args)
-{
-    vfs.template Mount<T>(std::move(prefix), std::forward<Args>(args)...);
-}
 } // namespace PicoEngine::IO

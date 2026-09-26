@@ -30,7 +30,6 @@ void Engine::Initialize()
     m_vfs.Mount<IO::FileBackend>("textures", IO::ExecutableDir() / "assets" / "textures");
     m_vfs.Mount<IO::FileBackend>("models", IO::ExecutableDir() / "assets" / "models");
 
-    
     m_window    = std::make_unique<Window>(WindowDesc{});
     m_baseTitle = m_window->GetTitle();
     m_renderer  = std::make_unique<Rendering::Renderer>(m_window->GetHandle());
