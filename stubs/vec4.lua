@@ -12,7 +12,6 @@
 ---@operator unm: vec4
 ---@operator mul(number): vec4
 ---@operator div(number): vec4
----@operator eq(vec4): boolean
 ---@overload fun(): vec4
 ---@overload fun(x: number, y: number, z: number, w: number): vec4
 vec4 = {}

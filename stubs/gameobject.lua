@@ -2,7 +2,6 @@
 -- GameObject: lightweight handle to a scene entity.
 
 ---@class GameObject
----@operator eq(GameObject): boolean handle equality (same scene + entity)
 GameObject = {}
 
 ---@return boolean false once the object is destroyed

@@ -11,7 +11,6 @@
 ---@operator unm: vec3
 ---@operator mul(number): vec3
 ---@operator div(number): vec3
----@operator eq(vec3): boolean
 ---@overload fun(): vec3
 ---@overload fun(x: number, y: number, z: number): vec3
 vec3 = {}
